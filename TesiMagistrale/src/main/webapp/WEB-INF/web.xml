@@ -4,9 +4,17 @@
         <servlet-name>ServletJob</servlet-name>
         <servlet-class>it.units.malelab.dallape.tesimagistrale.ServletJob</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>howMuch</servlet-name>
+        <servlet-class>it.units.malelab.dallape.tesimagistrale.howMuch</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>ServletJob</servlet-name>
         <url-pattern>/ServletJob</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>howMuch</servlet-name>
+        <url-pattern>/howMuch</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

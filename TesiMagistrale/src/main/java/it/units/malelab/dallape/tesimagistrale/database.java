@@ -58,7 +58,7 @@ public class database implements java.lang.AutoCloseable {
         }
     }
 
-    public boolean insertSite(Site a, String collection) throws MongoBulkWriteException, MongoException {
+    public boolean insertSite(Site a, String collection) throws MongoException {
         boolean b = collectionExist(collection);
         if (b) {
             Document doc = Document.parse(a.toJSONString());
@@ -67,7 +67,7 @@ public class database implements java.lang.AutoCloseable {
         return b;
     }
 
-    public boolean insertListSites(List<Site> sites, String collection) throws MongoBulkWriteException, MongoException {
+    public boolean insertListSites(List<Site> sites, String collection) throws MongoException {
 
         boolean b = collectionExist(collection);
         if (b) {
@@ -122,5 +122,7 @@ public class database implements java.lang.AutoCloseable {
     public void close() {
         mC.close();
     }
-
+public long howMuchRemainsInSTATE(String task_id){
+    return db.getCollection("STATE_LIST_SITES").count(new Document("task_id",task_id));
+}
 }

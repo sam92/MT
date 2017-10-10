@@ -5,6 +5,7 @@
  */
 package it.units.malelab.dallape.tesimagistrale;
 
+import com.mongodb.MongoException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -13,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -47,20 +50,19 @@ public class ServletJob extends HttpServlet {
 //fare un metodo che restituisce la lista di siti in STATE_LIST_SITES con un certo task_id
         Map<String, Thread> map = (Map<String, Thread>) context.getAttribute("map");
         List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
-        List<String> sites = new ArrayList<>();
-        for (String s : sitesInInput) {
-            sites.add(s.trim());
+        String condition = request.getParameter("condition");
+        if (condition == null) {
+            condition = "";
         }
+        String hash = request.getParameter("hash");
+        if (hash == null) {
+            hash = "";
+        }
+
         String NAME_COLLECTION = "SITES";
         String STATE = "STATE_LIST_SITES";
         String MAPPING_HASH_THREAD = "HASH_THREAD"; //mappa hash-thread ossia task_id-thread 
 
-//potrei fare un hash dei siti quando arrivano e farlo diventare il task_id 
-        String phrase = "";
-        for (int i = 0; i < sites.size(); i++) {
-            phrase += sites.get(i);
-        }
-        String task_id = getHashSHA1(phrase);
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
 //fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
         try (database db = new database()) {
@@ -72,28 +74,81 @@ public class ServletJob extends HttpServlet {
             }
 
 //faccio un altro servlet che fa partire i resume e fa il kill del thread
+//inserisco tutti i sites nella lista dello stato.
+            switch (condition) {
+                case "start":
+                    Thread res = map.get(hash);
+                    if (res != null) {
+                        ((executeTest) res).resumeFromPause();
+                        //non serve un dispatcher                        
+                    } else {//start condition
+                        //potrei fare un hash dei siti quando arrivano e farlo diventare il task_id 
+                        List<String> sites = new ArrayList<>();
+                        for (String s : sitesInInput) {
+                            sites.add(s.trim());
+                        }
+                        String phrase = "";
+                        for (int i = 0; i < sites.size(); i++) {
+                            phrase += sites.get(i);
+                        }
+                        String task_id = getHashSHA1(phrase);
+                        for (String s : sites) {
+                            if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
+                                Document current = new Document("site", s);
+                                current.append("task_id", task_id);
+                                db.getMongoDB().getCollection(STATE).insertOne(current);
+                            } else {
+                                System.out.println("Already exist: " + s);
+                            }
+                        }
+                        Thread t = new executeTest(NAME_COLLECTION, sites, task_id, map);
+                        map.put(task_id, t);
+                        t.start();
+                        
+                        long total= sites.size();
+                        //fare un dispatcher e mandare indietro task_id (dopo total e missSites si possono calcolare da là) magari mando indietro solo total
+                    }
+                    
+                    break;
+                case "stop":
+                    Thread current = map.get(hash);
+                    if (current != null) {
+                        try {
+                            ((executeTest) current).pause();
+                        } catch (InterruptedException ex) {
+                            System.out.println(ex.getMessage());
+                        }
+                        ((executeTest) current).kill();
+                        map.remove(hash);
+                        db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
+                        //fare un dispatcher fatto ad hoc che fa vedere i risultati
+                    }
+                    ;
 
-
-//inserisco tutti i sites nella lista dello stato. 
-            for (String s : sites) {
-                if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
-                    Document current = new Document("site", s);
-                    current.append("task_id", task_id);
-                    db.getMongoDB().getCollection(STATE).insertOne(current);
-                } else {
-                    System.out.println("Already exist: " + s);
-                }
+                    break;
+                case "pause":
+                    Thread toBePaused = map.get(hash);
+                    if (toBePaused != null) {
+                        try {
+                            ((executeTest) toBePaused).pause();
+                            
+                        } catch (InterruptedException ex) {
+                            System.out.println(ex.getMessage());
+                        }
+                    }
+                    ;
+                    break;
+                default: //dispatcher
+                    break;
             }
-        } catch (Exception e) {
+
+        } catch (IllegalArgumentException | MongoException e) {
             System.out.println(e.getMessage());
             //throw new RuntimeException(e);
         }
-        Thread t = new executeTest(NAME_COLLECTION, sites, task_id, map);
-        map.put(task_id, t);
-        t.start();
+        
+        //fare un dispatcher verso il jsp che gestisce la progress bar
         //response with progress bar and task_id to stop operations
-        //potrei anche inserire una map che contiene il numero iniziale di docs in lista e facendo un
-        //db.getMongoDB().getCollection(STATE).count() soltanto su quelli che hanno un certo task_id posso vedere quanti ne mancano da fare
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
