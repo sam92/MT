@@ -10,18 +10,21 @@ package it.units.malelab.dallape.tesimagistrale;
  * @author Samuele
  */
 import java.util.List;
+import java.util.Map;
 import org.bson.Document;
 
 public class executeTest extends Thread {
 
     private final String NAME_COLLECTION;
     private final List<String> sites;
-    private final long task_id;
+    private final String task_id;
+    private Map<String,Thread> map;
 
-    public executeTest(String NAME_COLLECTION, List<String> sites, long task_id) {
+    public executeTest(String NAME_COLLECTION, List<String> sites, String task_id, Map<String,Thread> map) {
         this.NAME_COLLECTION = NAME_COLLECTION;
         this.sites = sites;
         this.task_id = task_id;
+        this.map=map;
     }
 
     @Override
@@ -51,11 +54,16 @@ public class executeTest extends Thread {
                     System.out.println("Already exist: " + s);
                 }
                 
-                //tolgo dallo stato il doc perché o esiste già nel db o l'ho appena inserito
+                //tolgo dalla coda di questo task il doc perché è stato appena scansionato
                 Document current = new Document("site", s);
                 current.append("task_id", task_id);
                 db.getMongoDB().getCollection("STATE_LIST_SITES").deleteOne(current);
             }
+            //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
+            db.getMongoDB().getCollection("STATE_LIST_SITES").deleteMany(new Document("task_id",task_id));
+            //rimuovo l'associazione tra task_id e thread tanto ho finito
+            map.remove(task_id);
+            
         } catch (Exception e) {
             System.out.println(e.getMessage());
             //throw new RuntimeException(e);

@@ -25,7 +25,7 @@ public class SiteImplementation implements Site {
     private boolean visited;
     private Timestamp timestamp;
     private final List<String[]> result;
-    private long TASK_ID;
+    private String TASK_ID;
 
     public SiteImplementation(String url) throws AssertionError {
         assert !url.trim().isEmpty();
@@ -37,12 +37,12 @@ public class SiteImplementation implements Site {
         }
         this.url = url;
         result = new ArrayList<>();
-        TASK_ID = -1;
+        TASK_ID = "";
         visited=false;
         url_after_get=isReachable(url) ? "" : "Unreachable";
     }
 
-    public SiteImplementation(String url, long taskID) throws AssertionError {
+    public SiteImplementation(String url, String taskID) throws AssertionError {
         assert !url.trim().isEmpty();
         if (!url.startsWith("http")) {
             url = "http://" + url;
@@ -126,12 +126,12 @@ public class SiteImplementation implements Site {
     }
 
     @Override
-    public void setTASKID(long id) {
+    public void setTASKID(String id) {
         TASK_ID = id;
     }
 
     @Override
-    public long getTASKID() {
+    public String getTASKID() {
         return TASK_ID;
     }
 
@@ -190,7 +190,7 @@ public class SiteImplementation implements Site {
         SiteImplementation site = new SiteImplementation(json.getString("url_site"));
         site.setVisited(json.getBoolean("visited"));
         site.setRealUrl(json.getString("url_site_true"));
-        site.setTASKID(json.getLong("task_id"));
+        site.setTASKID(json.getString("task_id"));
         site.setTimestamp((Timestamp) json.get("timestamp"));
         JSONArray result = json.getJSONArray("result");
 

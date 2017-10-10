@@ -9,10 +9,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -44,32 +44,35 @@ public class ServletJob extends HttpServlet {
             throws ServletException, IOException {
 
         ServletContext context = getServletContext();
-        AtomicLong counter = (AtomicLong) context.getAttribute("counter");
-        Map<Long, Thread> map = (Map<Long, Thread>) context.getAttribute("map");
-        List<String> sites = Arrays.asList(request.getParameterValues("site"));
+//fare un metodo che restituisce la lista di siti in STATE_LIST_SITES con un certo task_id
+        Map<String, Thread> map = (Map<String, Thread>) context.getAttribute("map");
+        List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
+        List<String> sites = new ArrayList<>();
+        for (String s : sitesInInput) {
+            sites.add(s.trim());
+        }
         String NAME_COLLECTION = "SITES";
         String STATE = "STATE_LIST_SITES";
-        String MAPPING_HASH_TASK = "HASH_TASK"; //mappa hash-task 
-        long task_id = counter.getAndIncrement();
-//potrei fare un hash dei siti quando arrivano e associarlo ad un task_id 
-    String phrase="";
-    for(int i=0; i<sites.size(); i++){
-        phrase+=sites.get(i);
-    }
-    String hash= getHashSHA1(phrase);
+        String MAPPING_HASH_THREAD = "HASH_THREAD"; //mappa hash-thread ossia task_id-thread 
+
+//potrei fare un hash dei siti quando arrivano e farlo diventare il task_id 
+        String phrase = "";
+        for (int i = 0; i < sites.size(); i++) {
+            phrase += sites.get(i);
+        }
+        String task_id = getHashSHA1(phrase);
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
 //fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
         try (database db = new database()) {
-            if (!db.collectionExist(MAPPING_HASH_TASK)) {
-                db.createCollection(MAPPING_HASH_TASK);
+            if (!db.collectionExist(MAPPING_HASH_THREAD)) {
+                db.createCollection(MAPPING_HASH_THREAD);
             }
             if (!db.collectionExist(STATE)) {
                 db.createCollection(STATE);
             }
 
 //faccio un altro servlet che fa partire i resume e fa il kill del thread
-//inserisco lo stato-> prima dovrei guardare se c'era uno stato prima
-//tipo if(resume) check in stato quali mancano 
+
 
 //inserisco tutti i sites nella lista dello stato. 
             for (String s : sites) {
@@ -81,15 +84,16 @@ public class ServletJob extends HttpServlet {
                     System.out.println("Already exist: " + s);
                 }
             }
-            db.getMongoDB().getCollection(STATE).count();
         } catch (Exception e) {
             System.out.println(e.getMessage());
             //throw new RuntimeException(e);
         }
-        Thread t = new executeTest(NAME_COLLECTION, sites, task_id);
+        Thread t = new executeTest(NAME_COLLECTION, sites, task_id, map);
         map.put(task_id, t);
         t.start();
-        //response with progress bar
+        //response with progress bar and task_id to stop operations
+        //potrei anche inserire una map che contiene il numero iniziale di docs in lista e facendo un
+        //db.getMongoDB().getCollection(STATE).count() soltanto su quelli che hanno un certo task_id posso vedere quanti ne mancano da fare
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
@@ -130,16 +134,17 @@ public class ServletJob extends HttpServlet {
     public String getServletInfo() {
         return "Short description";
     }// </editor-fold>
+
     public static String getHashSHA1(String request) throws UnsupportedEncodingException {
-       byte[] byteArray= request.trim().getBytes("UTF-8");
-    MessageDigest md = null;
+        byte[] byteArray = request.trim().getBytes("UTF-8");
+        MessageDigest md = null;
         try {
             md = MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException ex) {
             System.out.println(ex.getMessage());
         }
 
-    return new String(md.digest(byteArray));
-}
+        return new String(md.digest(byteArray));
+    }
 
 }

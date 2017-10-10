@@ -33,8 +33,8 @@ public interface Site {
     public void setTimestamp(Timestamp now);
 
     public String getUrl();
-    public void setTASKID(long task_id);
-    public long getTASKID();
+    public void setTASKID(String task_id);
+    public String getTASKID();
 
     public String getRealUrl();
 
