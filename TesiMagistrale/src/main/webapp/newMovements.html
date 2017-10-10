@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<md-dialog aria-label="Movimento">
+    <form ng-submit="$event.preventDefault()" name="newMovement">
+        <md-toolbar>
+            <div class="md-toolbar-tools">
+                <h2>Nuovo Movimento</h2>
+                <span flex></span>
+                <md-button class="md-icon-button" ng-click="cancel()">
+                    <md-icon aria-label="Close dialog">close</md-icon>
+                </md-button>
+            </div>
+        </md-toolbar>
+        <md-dialog-content class="md-padding">
+            <div layout-xs="column"  layout-align="center center">
+                <div layout-xs="column" layout-gt-xs="row">
+                    <md-input-container>
+                        <label>Data</label>
+                        <input required type="date" name="date" ng-model="movement.date">
+                        <div ng-messages="newMovement.date.$error" role="alert">
+                            <div ng-message="required">Campo obbligatorio.</div>
+                        </div>
+                    </md-input-container>
+                    <md-input-container>
+                        <label>Importo (EUR)</label>
+                        <input required maxlength="10" type="number" name="money" ng-model="movement.money">
+                        <div ng-messages="newMovement.money.$error" role="alert">
+                            <div ng-message="required">Campo obbligatorio.</div>
+                            <div ng-message="maxlength">L'importo deve avere lunghezza minore di 10 cifre</div>
+                        </div>
+                    </md-input-container>
+                    <div flex-gt-xs="50" flex-xs>
+                        <md-autocomplete flex required
+                                         md-input-name="capitolo"
+                                         md-input-minlength="1"
+                                         md-input-maxlength="30"
+                                         md-no-cache="movement.noCache"
+                                         md-selected-item="movement.selectedItem"
+                                         md-search-text="movement.searchText"
+                                         md-items="item in movement.querySearch(movement.searchText)"
+                                         md-item-text="item.display"
+                                         md-floating-label="Capitolo">
+                            <md-item-template>
+                                <span md-highlight-text="movement.searchText">{{item.display}}</span>
+                            </md-item-template>
+                            <div ng-messages="newMovement.capitolo.$error" ng-if="newMovement.capitolo.$touched">
+                                <div ng-message="required"><b>Devi</b> inserire un capitolo.</div>
+                                <div ng-message="minlength">Il valore inserito non è abbastanza lungo.</div>
+                                <div ng-message="maxlength">Il valore inserito è troppo lungo.</div>
+                            </div>
+                        </md-autocomplete>
+                    </div>
+                </div>
+                <div layout-xs="column" layout-gt-xs="row" >
+                    <md-input-container flex="grow">
+                        <label>Descrizione</label>
+                        <textarea ng-model="movement.description" md-maxlength="150" name="description" rows="5" md-select-on-focus></textarea>
+                        <div ng-messages="newMovement.description.$error" role="alert">
+                            <div ng-message="required">Campo obbligatorio.</div>
+                            <div ng-message="md-maxlength">La descizione deve essere lunga meno di 150 caratteri.</div>
+                        </div>
+                    </md-input-container>
+                </div>
+            </div>
+        </md-dialog-content>
+        <md-dialog-actions>
+            <span flex></span>
+            <md-button ng-click="movement.save($event)" class="md-primary" ng-disabled="newMovement.date.$invalid || newMovement.capitolo.$invalid || newMovement.money.$invalid">Salva</md-button>
+        </md-dialog-actions>
+    </form>
+</md-dialog>

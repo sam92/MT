@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<md-dialog aria-label="Details">
+    <form name="formDetails">
+        <md-toolbar>
+            <div class="md-toolbar-tools">
+                <h2>Modifica l'operazione</h2>
+                <span flex></span>
+                <md-button class="md-icon-button" ng-click="cancel()">
+                    <md-icon aria-label="Close dialog">close</md-icon>
+                </md-button>
+            </div>
+        </md-toolbar>
+        <md-dialog-content class="md-padding">
+            <div layout-xs="column"  layout-align="center center">
+                <div layout-xs="column" layout-gt-xs="row">
+                    <md-input-container>
+                        <label>Data</label>
+                        <input required type="date" name="date" ng-model="details.current.date">
+                        <div ng-messages="formDetails.date.$error" role="alert">
+                            <div ng-message="required">Campo obbligatorio.</div>
+                        </div>
+                    </md-input-container>
+                    <md-input-container>
+                        <label>Importo (EUR)</label>
+                        <input required md-maxlength="10" type="number" name="money" ng-model="details.current.money">
+                        <div ng-messages="formDetails.money.$error" role="alert">
+                            <div ng-message="required">Campo obbligatorio.</div>
+                            <div ng-message="md-maxlength">L'importo deve avere lunghezza minore di 10 cifre</div>
+                        </div>
+                    </md-input-container>
+                    <div flex-gt-xs="50" flex-xs>
+                        <md-autocomplete flex required
+                                         md-input-name="capitolo"
+                                         md-input-minlength="1"
+                                         md-input-maxlength="30"
+                                         md-no-cache="details.noCache"
+                                         md-selected-item="details.selectedItem"
+                                         md-search-text="details.searchText"
+                                         md-items="item in details.querySearch(details.searchText)"
+                                         md-item-text="item.display"
+                                         md-floating-label="Capitolo">
+                            <md-item-template>
+                                <span md-highlight-text="details.searchText">{{item.display}}</span>
+                            </md-item-template>
+                            <div ng-messages="formDetails.capitolo.$error" ng-if="formDetails.capitolo.$touched">
+                                <div ng-message="required"><b>Devi</b> inserire un capitolo.</div>
+                                <div ng-message="minlength">Il valore inserito non è abbastanza lungo.</div>
+                                <div ng-message="maxlength">Il valore inserito è troppo lungo.</div>
+                            </div>
+                        </md-autocomplete>
+                    </div>
+                </div>
+                <div layout-xs="column" layout-gt-xs="row" >
+                    <md-input-container flex="grow">
+                        <label>Descrizione</label>
+                        <textarea ng-model="details.current.description" md-maxlength="150" name="description" rows="5" md-select-on-focus></textarea>
+                        <div ng-messages="formDetails.description.$error" role="alert">
+                            <div ng-message="required">Campo obbligatorio.</div>
+                            <div ng-message="md-maxlength">La descizione deve essere lunga meno di 150 caratteri.</div>
+                        </div>
+                    </md-input-container>
+                </div>
+            </div>
+        </md-dialog-content>
+        <md-dialog-actions>
+            <span flex></span>
+            <md-button ng-click="modified()" class="md-primary">Salva</md-button>
+        </md-dialog-actions>
+    </form>
+</md-dialog>
+
