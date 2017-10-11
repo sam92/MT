@@ -25,7 +25,6 @@ public class executeTest extends Thread {
     private boolean stopped;
 
     public executeTest(String NAME_COLLECTION, List<String> sites, String task_id, Map<String, Thread> map) {
-        super();
         this.NAME_COLLECTION = NAME_COLLECTION;
         this.sites = sites;
         this.task_id = task_id;
@@ -55,7 +54,8 @@ public class executeTest extends Thread {
                     //SiteImplementation site= TestSite.analyzeSite(s);
 
                     TestCase test = new TestCaseImplementation(s);
-                    test.searchFormInThisPattern(TestCaseImplementation.defaultPattern());
+                    test.testAll();
+                    test.searchFormInThisPattern(test.listCMS());
                     test.searchFormInLinkedPagesOfHomepage();
                     Site site = (Site) test.getSite();
                     site.setVisitedNow();

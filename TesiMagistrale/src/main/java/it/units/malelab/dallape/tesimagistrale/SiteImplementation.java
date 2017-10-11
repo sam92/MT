@@ -8,6 +8,7 @@ package it.units.malelab.dallape.tesimagistrale;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.Security;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -217,15 +218,17 @@ public class SiteImplementation implements Site {
         return a;
     }
 
-    protected static boolean isReachable(String url) {
+    public static boolean isReachable(String url) {
         boolean reachable = false;
         try {
             if (!url.startsWith("http")) {
                 url = "http://" + url;
             }
+            System.setProperty("java.protocol.handler.pkgs", "com.sun.net.ssl.internal.www.protocol");
+            Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+            HttpURLConnection.setFollowRedirects(true);
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            reachable = connection.getResponseCode() == 200;
-
+            reachable = connection.getResponseCode() >=200 && connection.getResponseCode()<400;
         } catch (IOException ex) {
             System.out.println(ex.getMessage());
         }

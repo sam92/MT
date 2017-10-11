@@ -22,6 +22,14 @@ public interface TestCase<T> {
     public WebDriver getWebDriver();
     public void setWebDriver(WebDriver wb);
     public void quitWebDriver();
+    public void testWordpress();
+    public void testJoomla();
+    public void testPlone();
+    public void testDrupal();
+    public void testTypo3();
+    public void testHomepage();
+    public void testAll();
+    public List<String> listCMS();
     
 }
 

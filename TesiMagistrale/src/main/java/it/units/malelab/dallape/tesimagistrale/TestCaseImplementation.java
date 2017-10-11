@@ -17,7 +17,7 @@ public class TestCaseImplementation implements TestCase {
 
     public static void main(String[] arg) {
         TestCase first = new TestCaseImplementation("www.trieste6.net");
-        first.searchFormInThisPattern(TestCaseImplementation.defaultPattern());
+        first.searchFormInThisPattern(first.listCMS());
         first.searchFormInLinkedPagesOfHomepage();
         ((Site) first.getSite()).setVisitedNow();
         first.quitWebDriver();
@@ -25,11 +25,13 @@ public class TestCaseImplementation implements TestCase {
 
     private final Site current;
     private WebDriver wb;
+    private List<String> testCMS;
 
     public TestCaseImplementation(String url) {
         current = new SiteImplementation(url);
         if (!current.getRealUrl().equalsIgnoreCase("Unreachable")) {
             wb = new PhantomDriver(PhantomDriver.capabilities());
+            testCMS=new ArrayList<>();
         } else {
             wb = null;
         }
@@ -38,6 +40,7 @@ public class TestCaseImplementation implements TestCase {
     public TestCaseImplementation(String url, WebDriver webDriv) {
         current = new SiteImplementation(url);
         wb = webDriv;
+        testCMS=new ArrayList<>();
     }
 
     private void searchLogin(WebDriver driver, Site url, boolean cmsTest, List<String> listCMS) {//c'è il problema dei siti che presentano una pagina 404, non so se veramente sono wordpress o no servirebbe wappalyzer
@@ -52,9 +55,9 @@ public class TestCaseImplementation implements TestCase {
                 }
             }
             for (String currentString : listCMS) {
-                //fare un ping prima di iniziare tranne per current=""
                 System.out.println(currentString);
-                if (SiteImplementation.isReachable(currentString)) {
+                //faccio un ping prima di iniziare tranne per current=""
+                if (currentString.isEmpty() || SiteImplementation.isReachable(currentString)) {
                     String[] coppiePageAction = searchForFormInThisPage(driver, currentString);
                     if (!(coppiePageAction[0].isEmpty() && coppiePageAction[1].isEmpty() && coppiePageAction[2].isEmpty())) {
                         System.out.println("Tripla:\n" + coppiePageAction[0] + "\n" + coppiePageAction[1] + "\n" + coppiePageAction[2] + "\n");
@@ -63,7 +66,6 @@ public class TestCaseImplementation implements TestCase {
                 }
             }
         }
-
     }
 
     private String[] searchForFormInThisPage(WebDriver driver, String url) {//sito della regione non riesce a trovare il form dopo aver seguito il link
@@ -252,12 +254,18 @@ public class TestCaseImplementation implements TestCase {
         if (wb != null) {
             wb.quit();
         }
-
     }
 
     @Override
     public void searchFormInThisPattern(List pattern) {
         //provare a fare il ping prima
+        if(pattern.isEmpty()){
+            testAll();
+            pattern=testCMS;
+        }
+        for(String s : (List<String>) pattern){
+            
+        }
         searchLogin(wb, current, true, (List<String>) pattern);
     }
 
@@ -280,7 +288,7 @@ public class TestCaseImplementation implements TestCase {
         //https://stackoverflow.com/questions/11454798/how-can-i-check-if-some-text-exist-or-not-in-the-page
         return new ArrayList<>();
     }
-
+/*
     public static List<String> defaultPattern() {
         List<String> listCMS = new ArrayList<>();
         listCMS.add(""); //in homepage
@@ -291,7 +299,11 @@ public class TestCaseImplementation implements TestCase {
         listCMS.add("/member"); //Typo3
         return listCMS;
     }
-
+*/
+    @Override
+        public List<String> listCMS() {
+        return testCMS;
+    }
     public static List<String> defaultWordsLogin() {
         List<String> nameLogin = new ArrayList<>();
         nameLogin.add("Sign in");
@@ -310,5 +322,48 @@ public class TestCaseImplementation implements TestCase {
         nameLogin.add("accedi");
         return nameLogin;
     }
+
+    @Override
+    public void testWordpress() {
+        if(!testCMS.contains("/wp-login.php")) testCMS.add("/wp-login.php");
+        if(!testCMS.contains("/login")) testCMS.add("/login");
+    }
+
+    @Override
+    public void testJoomla() {
+        if(!testCMS.contains("/administrator")) testCMS.add("/administrator");
+        if(!testCMS.contains("/login")) testCMS.add("/login");
+    }
+
+    @Override
+    public void testPlone() {
+        if(!testCMS.contains("/login")) testCMS.add("/login");
+    }
+
+    @Override
+    public void testDrupal() {
+        if(!testCMS.contains("/user")) testCMS.add("/user");
+    }
+    
+    @Override
+    public void testTypo3(){
+        if(!testCMS.contains("/member")) testCMS.add("/member");
+    }
+
+    @Override
+    public void testHomepage() {
+        if(!testCMS.contains("")) testCMS.add("");
+    }
+
+    @Override
+    public void testAll() {
+        testWordpress();
+        testJoomla();
+        testPlone();
+        testDrupal();
+        testTypo3();
+        testHomepage();
+    }
+
 }
 
