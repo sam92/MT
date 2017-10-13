@@ -62,7 +62,16 @@ public class database implements java.lang.AutoCloseable {
         boolean b = collectionExist(collection);
         if (b) {
             Document doc = Document.parse(a.toJSONString());
+            //o anche a.toDocument()
             db.getCollection(collection).insertOne(doc);
+        }
+        return b;
+    }
+        public boolean updateSite(Site a, String collection) throws MongoException {
+        boolean b = collectionExist(collection);
+        if (b) {
+            //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
+            db.getCollection(collection).updateOne(new Document("url_site", a.getUrl()), new Document("$push",((SiteImplementation_reanalyze)a).toDocument().get("result")));
         }
         return b;
     }

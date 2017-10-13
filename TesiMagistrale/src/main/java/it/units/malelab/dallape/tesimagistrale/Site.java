@@ -16,6 +16,7 @@ package it.units.malelab.dallape.tesimagistrale;
  */
 
 import java.sql.Timestamp;
+import org.bson.Document;
 
 public interface Site {
 
@@ -37,6 +38,6 @@ public interface Site {
     public String getTASKID();
 
     public String getRealUrl();
-
     public String toJSONString();
+    public Document toDocument();
 }

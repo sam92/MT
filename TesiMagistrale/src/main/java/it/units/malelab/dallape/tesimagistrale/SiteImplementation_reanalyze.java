@@ -20,7 +20,7 @@ import org.json.JSONObject;
  *
  * @author Samuele
  */
-public class SiteImplementation implements Site {
+public class SiteImplementation_reanalyze implements Site {
 
     private final String url;
     private String url_after_get;
@@ -29,7 +29,7 @@ public class SiteImplementation implements Site {
     private final List<String[]> result;
     private String TASK_ID;
 
-    public SiteImplementation(String url) throws AssertionError {
+    public SiteImplementation_reanalyze(String url) throws AssertionError {
         assert !url.trim().isEmpty();
         if (!url.startsWith("http")) {
             url = "http://" + url;
@@ -40,11 +40,11 @@ public class SiteImplementation implements Site {
         this.url = url;
         result = new ArrayList<>();
         TASK_ID = "";
-        visited=false;
-        url_after_get=isReachable(url) ? "" : "Unreachable";
+        visited = false;
+        url_after_get = isReachable(url) ? "" : "Unreachable";
     }
 
-    public SiteImplementation(String url, String taskID) throws AssertionError {
+    public SiteImplementation_reanalyze(String url, String taskID) throws AssertionError {
         assert !url.trim().isEmpty();
         if (!url.startsWith("http")) {
             url = "http://" + url;
@@ -55,8 +55,8 @@ public class SiteImplementation implements Site {
         this.url = url;
         result = new ArrayList<>();
         TASK_ID = taskID;
-        visited=false;
-        url_after_get=isReachable(url) ? "" : "Unreachable";
+        visited = false;
+        url_after_get = isReachable(url) ? "" : "Unreachable";
     }
 
     @Override
@@ -179,29 +179,35 @@ public class SiteImplementation implements Site {
             w.put("location_form", current[0]);
             list.add(w);
         }
+        List<JSONObject> listaTimestamp = new ArrayList<>();
+        JSONObject o = new JSONObject();
+        o.append("timestamp", timestamp);
+        o.append("url_finded", new JSONArray(list));
+        listaTimestamp.add(o);
         json.put("url_site", url);
         json.put("url_site_true", url_after_get);
         json.put("visited", visited);
-        json.put("timestamp", timestamp);
-        json.put("task_id", TASK_ID);
-        json.put("result", new JSONArray(list));
+        //json.put("timestamp", timestamp);
+        //json.put("task_id", TASK_ID);
+        json.put("result", new JSONArray(listaTimestamp));
         return json;
     }
 
-    public static SiteImplementation fromJSON(JSONObject json) {
-        SiteImplementation site = new SiteImplementation(json.getString("url_site"));
+    public static SiteImplementation_reanalyze fromJSON(JSONObject json) {
+        SiteImplementation_reanalyze site = new SiteImplementation_reanalyze(json.getString("url_site"));
         site.setVisited(json.getBoolean("visited"));
         site.setRealUrl(json.getString("url_site_true"));
-        site.setTASKID(json.getString("task_id"));
+        //site.setTASKID(json.getString("task_id"));
         site.setTimestamp((Timestamp) json.get("timestamp"));
         JSONArray result = json.getJSONArray("result");
-
+        //controllare molto bene quello che dovrebbe fare
+        /*
         for (int i = 0; i < result.length(); i++) {
             if (!result.isNull(i)) {
                 String[] a = (String[]) result.get(i);
                 site.insertIntoResult(a);
             }
-        }
+        }*/
         return site;
     }
 
@@ -229,7 +235,7 @@ public class SiteImplementation implements Site {
             Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
             HttpURLConnection.setFollowRedirects(true);
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            reachable = connection.getResponseCode() >=200 && connection.getResponseCode()<400;
+            reachable = connection.getResponseCode() >= 200 && connection.getResponseCode() < 400;
         } catch (IOException ex) {
             System.out.println(ex.getMessage());
         }
@@ -238,6 +244,17 @@ public class SiteImplementation implements Site {
 
     @Override
     public Document toDocument() {
-        return Document.parse(toJSONString());
+        List<Document> list = new ArrayList<>();
+        for (String[] current : result) {
+            Document w = new Document().append("link_click", current[2]).append("action", current[1]).append("location_form", current[0]);
+            list.add(w);
+        }
+        List<Document> listaTimestamp = new ArrayList<>();
+        Document o = new Document().append("timestamp", timestamp).append("url_finded", list);
+        listaTimestamp.add(o);
+        
+        Document doc=new Document("url_site", url).append("url_site_true", url_after_get).append("visited", visited).append("result",listaTimestamp);
+        //Document doc = new Document("$push", new Document("result", new Document("timestamp", timestamp).append("url_finded", new JSONArray(list))));
+        return doc;
     }
 }
