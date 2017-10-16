@@ -6,6 +6,7 @@
 package it.units.malelab.dallape.tesimagistrale;
 
 import com.mongodb.MongoException;
+import com.sun.xml.internal.ws.client.RequestContext;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -73,6 +74,7 @@ public class ServletJob extends HttpServlet {
             switch (action) {
                 case "start":
                     Conditions con;
+                    boolean resume=false;
                     if(!hash.trim().isEmpty()){
                     if (mappaConditions.get(hash) == null) {//start condition
                         List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
@@ -97,14 +99,23 @@ public class ServletJob extends HttpServlet {
                         }
                         con = new Conditions(sites, test, reanalyze, task_id, COLLECTION_SITES, ACTUAL_STATE);
                         mappaConditions.put(task_id, con);
+                        request.setAttribute("hash", task_id);
                     } else {
                         //sto facendo una resume
+                        resume=true;
                         con = mappaConditions.get(hash);
                     }
                     Thread t = new executeTest(mappaConditions, con);
                     con.setThread(t);
                     t.start();
-                    //fare un dispatcher e mandare indietro task_id
+                    //mettere mappa in DB
+                    if(!resume){
+                         //fare un dispatcher verso il jsp che gestisce la progress bar
+                         //response with progress bar and task_id to stop operations
+                         //fare un dispatcher e mandare indietro task_id
+                        request.getRequestDispatcher("progress.jsp").forward(request, response);
+                    }
+
                     }
                     break;
                 case "stop":
@@ -118,6 +129,8 @@ public class ServletJob extends HttpServlet {
                     } else if (c != null && c.getThread() == null) {
                         mappaConditions.remove(hash);
                     }
+                    //sovrascrivere mappa in db
+                    request.getRequestDispatcher("stop.html").forward(request, response);
                     break;
                 case "pause":
                     //setta nelle conditions come lista di sites quelli che sono rimasti in db
@@ -125,11 +138,11 @@ public class ServletJob extends HttpServlet {
                     if (condit != null && condit.getThread() != null) {
                         Thread toBePaused = condit.getThread();
                         ((executeTest) toBePaused).pause();
-
-                        //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
                     } else if (condit != null && condit.getThread() == null) {
                         mappaConditions.remove(hash);
                     }
+                    //sovrascrivere la mappa in db
+                    
                     break;
                 default: //dispatcher
                     break;
@@ -139,9 +152,6 @@ public class ServletJob extends HttpServlet {
             System.out.println(e.getMessage());
             //throw new RuntimeException(e);
         }
-
-        //fare un dispatcher verso il jsp che gestisce la progress bar
-        //response with progress bar and task_id to stop operations
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">

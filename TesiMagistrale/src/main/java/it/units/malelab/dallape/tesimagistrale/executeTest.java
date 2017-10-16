@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.bson.Document;
 
 public class executeTest extends Thread {
@@ -23,6 +24,7 @@ public class executeTest extends Thread {
     private final String COLLECTION_SITES;
     private final String ACTUAL_STATE;
     private List<String> sites;
+    private Map<String,Boolean> progress;
     private final String task_id;
     private Map<String, Conditions> map;
     private List<String> whatTest;
@@ -43,6 +45,7 @@ public class executeTest extends Thread {
         this.whatTest = con.getTests();
         stopped = false;
         paused=false;
+       progress=con.getProgress();
     }
 
     @Override
@@ -54,7 +57,8 @@ public class executeTest extends Thread {
             if (!db.collectionExist(ACTUAL_STATE)) {
                 db.createCollection(ACTUAL_STATE);
             }
-            if((long)sites.size()!=db.howMuchRemainsInCollection("task_id",task_id, ACTUAL_STATE)){
+            /*
+            if((long)progress.keySet().size()!=db.howMuchRemainsInCollection("task_id",task_id, ACTUAL_STATE)){
                 //prendi quelli che sono nello stato e sovrascrivi la lista
                 sites=new ArrayList<>();
                 FindIterable<Document> fi=db.getDocumentsInThisCollection(ACTUAL_STATE).find(new Document().append("task_id", task_id));
@@ -62,8 +66,15 @@ public class executeTest extends Thread {
                 while(it.hasNext()){
                     sites.add(it.next().getString("site"));
                 }
+            }*/
+            long nrElement=0;
+            for(Boolean b:progress.values()){
+                if(!b) nrElement++;
             }
-            for (String s : sites) {
+            assert(nrElement==db.howMuchRemainsInCollection("task_id",task_id, ACTUAL_STATE));
+            
+            for (String s : progress.keySet()) {
+                if(!progress.get(s)){
                 synchronized (this) {
                     if (stopped) {
                         break;
@@ -103,12 +114,14 @@ public class executeTest extends Thread {
                         test.quitWebDriver();
                         //db.insertSite(site, NAME_COLLECTION);
                         db.updateSite(site, COLLECTION_SITES);
+                        progress.replace(s, false,true);
                     } else {
                         System.out.println("Already exist: " + s);
                     }
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
                 db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
                 }
+            }
             }
             if(!paused){
             //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
