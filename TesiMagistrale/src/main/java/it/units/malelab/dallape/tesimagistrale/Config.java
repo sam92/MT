@@ -21,7 +21,7 @@ public class Config implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         ServletContext context=sce.getServletContext();
-        Map<String,Thread> map=new ConcurrentHashMap<>();
+        Map<String,Conditions> map=new ConcurrentHashMap<>();
         context.setAttribute("map", map);
         //scelta di progetto, se viene giù il servlet non tengo le code in pausa
 

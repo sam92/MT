@@ -17,11 +17,11 @@ import javax.servlet.ServletContextListener;
  *
  * @author Samuele
  */
-public class Config_noPause implements ServletContextListener {
+public class Config_pause implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         ServletContext context=sce.getServletContext();
-        Map<String,Conditions> map=new ConcurrentHashMap<>();
+        Map<String,Thread> map=new ConcurrentHashMap<>();
         context.setAttribute("map", map);
         //scelta di progetto, se viene giù il servlet non tengo le code in pausa
 

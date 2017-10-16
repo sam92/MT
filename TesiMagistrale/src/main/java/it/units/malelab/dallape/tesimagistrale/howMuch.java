@@ -39,7 +39,7 @@ public class howMuch extends HttpServlet {
                 
             long value=-1;
             if(task_id!=null && !task_id.trim().isEmpty()){
-            try (database db = new database()) {
+            try (Database db = new Database()) {
                 if (!db.collectionExist("STATE_LIST_SITES")) {
                 db.createCollection("STATE_LIST_SITES");
             }

@@ -10,6 +10,9 @@ package it.units.malelab.dallape.tesimagistrale;
  * @author Samuele
  */
 import com.mongodb.MongoException;
+import com.mongodb.client.FindIterable;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.bson.Document;
@@ -17,47 +20,56 @@ import org.bson.Document;
 public class executeTest extends Thread {
 
     //private volatile boolean stop=false;
-    private final String NAME_COLLECTION;
-    private final List<String> sites;
+    private final String COLLECTION_SITES;
+    private final String ACTUAL_STATE;
+    private List<String> sites;
     private final String task_id;
-    private Map<String, Thread> map;
+    private Map<String, Conditions> map;
     private List<String> whatTest;
-    private boolean suspended;
+    private boolean reanalyze;
     private boolean stopped;
+    private boolean paused;
 
-    public executeTest(String NAME_COLLECTION, List<String> sites, String task_id, Map<String, Thread> map, List<String> test) {
-        this.NAME_COLLECTION = NAME_COLLECTION;
-        this.sites = sites;
-        this.task_id = task_id;
+    public executeTest(Map<String, Conditions> map, Conditions con) {
+        this.COLLECTION_SITES = con.getNameCollection();
+        this.ACTUAL_STATE=con.getNameState();
+        this.sites = con.getSites();
+        this.task_id = con.getTaskID();
         this.map = map;
-        if (!test.contains("")) {
-            test.add("");
+        if (!con.getTests().contains("")) {
+            con.getTests().add("");
         }
-        this.whatTest = test;
-        suspended = false;
+        this.reanalyze=con.getReanalyze();
+        this.whatTest = con.getTests();
         stopped = false;
+        paused=false;
     }
 
     @Override
     public void run() {
-        try (database db = new database()) {
-            if (!db.collectionExist(NAME_COLLECTION)) {
-                db.createCollection(NAME_COLLECTION);
+        try (Database db = new Database()) {
+            if (!db.collectionExist(COLLECTION_SITES)) {
+                db.createCollection(COLLECTION_SITES);
             }
-
+            if (!db.collectionExist(ACTUAL_STATE)) {
+                db.createCollection(ACTUAL_STATE);
+            }
+            if((long)sites.size()!=db.howMuchRemainsInCollection("task_id",task_id, ACTUAL_STATE)){
+                //prendi quelli che sono nello stato e sovrascrivi la lista
+                sites=new ArrayList<>();
+                FindIterable<Document> fi=db.getDocumentsInThisCollection(ACTUAL_STATE).find(new Document().append("task_id", task_id));
+                Iterator<Document> it=fi.iterator();
+                while(it.hasNext()){
+                    sites.add(it.next().getString("site"));
+                }
+            }
             for (String s : sites) {
                 synchronized (this) {
-                    while (suspended) {
-                        wait();
-                    }
                     if (stopped) {
                         break;
                     }
-                    if (!db.existADocumentWithThisUrlInSITES(s) && !s.trim().isEmpty()) {
-                        System.out.println(NAME_COLLECTION);
-                        //vecchia implementaz in Test.java
-                        //SiteImplementation site= TestSite.analyzeSite(s);
-
+                    if ((!db.existADocumentWithThisUrlInSITES(s) || reanalyze) && !s.trim().isEmpty()) {
+                        System.out.println(COLLECTION_SITES);
                         TestCase test = new TestCaseImplementation(s);
                         if (whatTest.size() >= 6 && (whatTest.contains("wordpress") || whatTest.contains("joomla") || whatTest.contains("plone") || whatTest.contains("drupal") || whatTest.contains("typo3"))) {
                             test.testAll();
@@ -89,50 +101,35 @@ public class executeTest extends Thread {
                         Site site = (Site) test.getSite();
                         site.setVisitedNow();
                         test.quitWebDriver();
-
-                        site.setTASKID(task_id);
-                        db.insertSite(site, NAME_COLLECTION);
-
+                        //db.insertSite(site, NAME_COLLECTION);
+                        db.updateSite(site, COLLECTION_SITES);
                     } else {
                         System.out.println("Already exist: " + s);
                     }
-                }
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
-                Document current = new Document("site", s);
-                current.append("task_id", task_id);
-                db.getMongoDB().getCollection("STATE_LIST_SITES").deleteOne(current);
+                db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
+                }
             }
+            if(!paused){
             //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
-            db.getMongoDB().getCollection("STATE_LIST_SITES").deleteMany(new Document("task_id", task_id));
+            db.getMongoDB().getCollection(ACTUAL_STATE).deleteMany(new Document("task_id", task_id));
             //rimuovo l'associazione tra task_id e thread tanto ho finito
             map.remove(task_id);
+            }
 
         } catch (IllegalArgumentException | MongoException e) {
             System.out.println(e.getMessage());
             //throw new RuntimeException(e);
-        } catch (InterruptedException ex) {
-
         }
-
-    }
-
-    /*
-    //alternative method to stopping a thread
-    public void cancel(){
-        stop=true;
-    }*/
-    public synchronized void pause() {
-        suspended = true;
-    }
-
-    public synchronized void resumeFromPause() {
-        suspended = true;
-        notify();
     }
 
     public synchronized void kill() {
         stopped = true;
-        suspended = false;
+        notify();
+    }
+    public synchronized void pause(){
+        paused=true;
+        stopped = true;
         notify();
     }
 

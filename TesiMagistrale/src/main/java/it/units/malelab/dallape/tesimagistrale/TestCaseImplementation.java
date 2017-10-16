@@ -28,7 +28,7 @@ public class TestCaseImplementation implements TestCase {
     private List<String> testCMS;
 
     public TestCaseImplementation(String url) {
-        current = new SiteImplementation(url);
+        current = new SiteImplementation_noReanalyze(url);
         if (!current.getRealUrl().equalsIgnoreCase("Unreachable")) {
             wb = new PhantomDriver(PhantomDriver.capabilities());
             testCMS=new ArrayList<>();
@@ -38,7 +38,7 @@ public class TestCaseImplementation implements TestCase {
     }
 
     public TestCaseImplementation(String url, WebDriver webDriv) {
-        current = new SiteImplementation(url);
+        current = new SiteImplementation_noReanalyze(url);
         wb = webDriv;
         testCMS=new ArrayList<>();
     }
@@ -57,11 +57,11 @@ public class TestCaseImplementation implements TestCase {
             for (String currentString : listCMS) {
                 System.out.println(currentString);
                 //faccio un ping prima di iniziare tranne per current=""
-                if (currentString.isEmpty() || SiteImplementation.isReachable(currentString)) {
+                if (currentString.isEmpty() || SiteImplementation_noReanalyze.isReachable(currentString)) {
                     String[] coppiePageAction = searchForFormInThisPage(driver, currentString);
                     if (!(coppiePageAction[0].isEmpty() && coppiePageAction[1].isEmpty() && coppiePageAction[2].isEmpty())) {
                         System.out.println("Tripla:\n" + coppiePageAction[0] + "\n" + coppiePageAction[1] + "\n" + coppiePageAction[2] + "\n");
-                        ((SiteImplementation)url).insertIntoResult(coppiePageAction);
+                        ((SiteImplementation_noReanalyze)url).insertIntoResult(coppiePageAction);
                     }
                 }
             }

@@ -14,8 +14,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -47,42 +45,39 @@ public class ServletJob extends HttpServlet {
             throws ServletException, IOException {
 
         ServletContext context = getServletContext();
-//fare un metodo che restituisce la lista di siti in STATE_LIST_SITES con un certo task_id
-        Map<String, Thread> map = (Map<String, Thread>) context.getAttribute("map");
-        List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
-        String condition = request.getParameter("condition");
-        if (condition == null) {
-            condition = "";
+        Map<String, Conditions> mappaConditions = (Map<String, Conditions>) context.getAttribute("map");
+        String action = request.getParameter("condition");
+        if (action == null) {
+            action = "";
         }
         String hash = request.getParameter("hash");
         if (hash == null) {
             hash = "";
         }
 
-        String NAME_COLLECTION = "SITES";
-        String STATE = "STATE_LIST_SITES";
-        String MAPPING_HASH_THREAD = "HASH_THREAD"; //mappa hash-thread ossia task_id-thread 
+        String COLLECTION_SITES = "SITES";
+        String ACTUAL_STATE = "STATE_LIST_SITES";
+        String HASH_CONDITIONS = "HASH_CONDITIONS"; //mappa hash-thread ossia task_id-thread 
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
 //fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
-        try (database db = new database()) {
-            if (!db.collectionExist(MAPPING_HASH_THREAD)) {
-                db.createCollection(MAPPING_HASH_THREAD);
-            }
-            if (!db.collectionExist(STATE)) {
-                db.createCollection(STATE);
+        try (Database db = new Database()) {
+            //TO DO
+            /*if (!db.collectionExist(HASH_CONDITIONS)) {
+                db.createCollection(HASH_CONDITIONS);
+            }*/
+            if (!db.collectionExist(ACTUAL_STATE)) {
+                db.createCollection(ACTUAL_STATE);
             }
 
-//faccio un altro servlet che fa partire i resume e fa il kill del thread
-//inserisco tutti i sites nella lista dello stato.
-            switch (condition) {
+            switch (action) {
                 case "start":
-                    Thread res = map.get(hash);
-                    if (res != null) {
-                        ((executeTest) res).resumeFromPause();
-                        //non serve un dispatcher                        
-                    } else {//start condition
-                        //potrei fare un hash dei siti quando arrivano e farlo diventare il task_id 
+                    Conditions con;
+                    if(!hash.trim().isEmpty()){
+                    if (mappaConditions.get(hash) == null) {//start condition
+                        List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
+                        List<String> test = Arrays.asList(request.getParameterValues("test"));
+                        boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
                         List<String> sites = new ArrayList<>();
                         for (String s : sitesInInput) {
                             sites.add(s.trim());
@@ -94,49 +89,47 @@ public class ServletJob extends HttpServlet {
                         String task_id = getHashSHA1(phrase);
                         for (String s : sites) {
                             if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
-                                Document current = new Document("site", s);
-                                current.append("task_id", task_id);
-                                db.getMongoDB().getCollection(STATE).insertOne(current);
+                                //inserisco tutti i sites nella lista dello stato.
+                                db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", task_id));
                             } else {
                                 System.out.println("Already exist: " + s);
                             }
                         }
-                        Thread t = new executeTest(NAME_COLLECTION, sites, task_id, map);
-                        map.put(task_id, t);
-                        t.start();
-                        
-                        long total= sites.size();
-                        //fare un dispatcher e mandare indietro task_id (dopo total e missSites si possono calcolare da là) magari mando indietro solo total
+                        con = new Conditions(sites, test, reanalyze, task_id, COLLECTION_SITES, ACTUAL_STATE);
+                        mappaConditions.put(task_id, con);
+                    } else {
+                        //sto facendo una resume
+                        con = mappaConditions.get(hash);
                     }
-                    
+                    Thread t = new executeTest(mappaConditions, con);
+                    con.setThread(t);
+                    t.start();
+                    //fare un dispatcher e mandare indietro task_id
+                    }
                     break;
                 case "stop":
-                    Thread current = map.get(hash);
-                    if (current != null) {
-                        try {
-                            ((executeTest) current).pause();
-                        } catch (InterruptedException ex) {
-                            System.out.println(ex.getMessage());
-                        }
-                        ((executeTest) current).kill();
-                        map.remove(hash);
-                        db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
-                        //fare un dispatcher fatto ad hoc che fa vedere i risultati
+                    Conditions c = mappaConditions.get(hash);
+                    if (c != null && c.getThread() != null) {
+                        Thread toBeStopped = c.getThread();
+                        ((executeTest) toBeStopped).kill();
+                        //mappaConditions.remove(hash);
+                        //db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
+                        //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
+                    } else if (c != null && c.getThread() == null) {
+                        mappaConditions.remove(hash);
                     }
-                    ;
-
                     break;
                 case "pause":
-                    Thread toBePaused = map.get(hash);
-                    if (toBePaused != null) {
-                        try {
-                            ((executeTest) toBePaused).pause();
-                            
-                        } catch (InterruptedException ex) {
-                            System.out.println(ex.getMessage());
-                        }
+                    //setta nelle conditions come lista di sites quelli che sono rimasti in db
+                    Conditions condit = mappaConditions.get(hash);
+                    if (condit != null && condit.getThread() != null) {
+                        Thread toBePaused = condit.getThread();
+                        ((executeTest) toBePaused).pause();
+
+                        //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
+                    } else if (condit != null && condit.getThread() == null) {
+                        mappaConditions.remove(hash);
                     }
-                    ;
                     break;
                 default: //dispatcher
                     break;
@@ -146,7 +139,7 @@ public class ServletJob extends HttpServlet {
             System.out.println(e.getMessage());
             //throw new RuntimeException(e);
         }
-        
+
         //fare un dispatcher verso il jsp che gestisce la progress bar
         //response with progress bar and task_id to stop operations
     }

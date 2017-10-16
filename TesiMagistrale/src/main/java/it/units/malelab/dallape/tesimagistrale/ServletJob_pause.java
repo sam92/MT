@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -31,7 +30,7 @@ quando faccio partire un altro task guardo se il sito è visited e se ha lo stes
  *
  * @author Samuele
  */
-public class ServletJob_noPause extends HttpServlet {
+public class ServletJob_pause extends HttpServlet {
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -47,15 +46,12 @@ public class ServletJob_noPause extends HttpServlet {
 
         ServletContext context = getServletContext();
 //fare un metodo che restituisce la lista di siti in STATE_LIST_SITES con un certo task_id
-        Map<String, Conditions> mappaConditions = (Map<String, Conditions>) context.getAttribute("map");
-        Map<String, Thread> mappaThread = (Map<String, Thread>) new ConcurrentHashMap<String, Thread>();
+        Map<String, Thread> map = (Map<String, Thread>) context.getAttribute("map");
         List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
         List<String> test = Arrays.asList(request.getParameterValues("test"));
-        String action = request.getParameter("condition");
-        boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
-
-        if (action == null) {
-            action = "";
+        String condition = request.getParameter("condition");
+        if (condition == null) {
+            condition = "";
         }
         String hash = request.getParameter("hash");
         if (hash == null) {
@@ -68,7 +64,7 @@ public class ServletJob_noPause extends HttpServlet {
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
 //fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
-        try (database db = new database()) {
+        try (Database db = new Database()) {
             if (!db.collectionExist(MAPPING_HASH_THREAD)) {
                 db.createCollection(MAPPING_HASH_THREAD);
             }
@@ -78,9 +74,9 @@ public class ServletJob_noPause extends HttpServlet {
 
 //faccio un altro servlet che fa partire i resume e fa il kill del thread
 //inserisco tutti i sites nella lista dello stato.
-            switch (action) {
+            switch (condition) {
                 case "start":
-                    if (mappaConditions.get(hash)== null) {//start condition
+                    if (map.get(hash)== null) {//start condition
                         //potrei fare un hash dei siti quando arrivano e farlo diventare il task_id 
                         List<String> sites = new ArrayList<>();
                         for (String s : sitesInInput) {
@@ -100,31 +96,27 @@ public class ServletJob_noPause extends HttpServlet {
                                 System.out.println("Already exist: " + s);
                             }
                         }
-                        Conditions con=new Conditions(sites, test, reanalyze, task_id, NAME_COLLECTION, STATE);
-                        Thread t = new executeTest_noPause_reanalyze(mappaConditions,con);
-                        mappaConditions.put(task_id, con);
-                        mappaThread.put(task_id, t);
+                        Thread t = new ExecuteTest_pause(NAME_COLLECTION, sites, task_id, map,test);
+                        map.put(task_id, t);
                         t.start();
-                        //mettere in db id task con lista di condizioni ()se fare
                         //fare un dispatcher e mandare indietro task_id
                     }                 
                     break;
                 case "stop":
-                    Thread toBeStopped = mappaThread.get(hash);
+                    Thread toBeStopped = map.get(hash);
                     if (toBeStopped != null) {
-                        ((executeTest) toBeStopped).kill();
+                        ((ExecuteTest_pause) toBeStopped).kill();
                         //map.remove(hash);
                         //db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
                         //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
                     }
-                    mappaConditions.remove(hash);
                     break;
                 case "pause":
-                    Thread toBePaused = mappaThread.get(hash);
-                    if (toBePaused != null) ((executeTest) toBePaused).pause();
+                    Thread toBePaused = map.get(hash);
+                    if (toBePaused != null) ((ExecuteTest_pause) toBePaused).pause();
                     break;
-                case "resume": Thread toBeResumed = mappaThread.get(hash);
-                    if (toBeResumed != null) ((executeTest) toBeResumed).resumeFromPause();
+                case "resume": Thread toBeResumed = map.get(hash);
+                    if (toBeResumed != null) ((ExecuteTest_pause) toBeResumed).resumeFromPause();
                     break;
                 default: //dispatcher
                     break;

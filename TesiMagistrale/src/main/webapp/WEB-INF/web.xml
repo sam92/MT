@@ -10,7 +10,7 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>ServletJob</servlet-name>
-        <url-pattern>/ServletJob</url-pattern>
+        <url-pattern>/doJob</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>howMuch</servlet-name>
