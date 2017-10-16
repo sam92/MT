@@ -40,7 +40,7 @@ public class ExecuteTest_pause extends Thread {
 
     @Override
     public void run() {
-        try (Database db = new Database()) {
+        try (database db = new database()) {
             if (!db.collectionExist(NAME_COLLECTION)) {
                 db.createCollection(NAME_COLLECTION);
             }

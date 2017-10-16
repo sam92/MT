@@ -47,7 +47,7 @@ public class executeTest extends Thread {
 
     @Override
     public void run() {
-        try (Database db = new Database()) {
+        try (database db = new database()) {
             if (!db.collectionExist(COLLECTION_SITES)) {
                 db.createCollection(COLLECTION_SITES);
             }

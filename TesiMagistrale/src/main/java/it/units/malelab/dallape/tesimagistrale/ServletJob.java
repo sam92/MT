@@ -61,7 +61,7 @@ public class ServletJob extends HttpServlet {
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
 //fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
-        try (Database db = new Database()) {
+        try (database db = new database()) {
             //TO DO
             /*if (!db.collectionExist(HASH_CONDITIONS)) {
                 db.createCollection(HASH_CONDITIONS);

@@ -15,6 +15,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
+import com.mongodb.client.model.FindOneAndReplaceOptions;
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
@@ -61,9 +62,9 @@ public class database implements java.lang.AutoCloseable {
     public boolean insertSite(Site a, String collection) throws MongoException {
         boolean b = collectionExist(collection);
         if (b) {
-            Document doc = Document.parse(a.toJSONString());
+            //Document doc = Document.parse(a.toJSONString());
             //o anche a.toDocument()
-            db.getCollection(collection).insertOne(doc);
+            db.getCollection(collection).insertOne(a.toDocument());
         }
         return b;
     }
@@ -71,7 +72,8 @@ public class database implements java.lang.AutoCloseable {
         boolean b = collectionExist(collection);
         if (b) {
             //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
-            db.getCollection(collection).updateOne(new Document("url_site", a.getUrl()), new Document("$push",((SiteImplementation_reanalyze)a).toDocument().get("result")));
+            Document doc = db.getCollection(collection).findOneAndReplace(new Document("url_site", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
+        if(doc==null) b=false;
         }
         return b;
     }
@@ -133,5 +135,8 @@ public class database implements java.lang.AutoCloseable {
     }
 public long howMuchRemainsInSTATE(String task_id){
     return db.getCollection("STATE_LIST_SITES").count(new Document("task_id",task_id));
+}
+public long howMuchRemainsInCollection(String key, Object value, String collection){
+    return db.getCollection(collection).count(new Document(key,value));
 }
 }
