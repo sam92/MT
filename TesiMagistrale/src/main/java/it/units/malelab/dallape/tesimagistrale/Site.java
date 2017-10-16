@@ -28,6 +28,7 @@ public interface Site {
     public void setVisited(boolean value);
 
     public boolean isVisited();
+    public boolean isUnreachable();
 
     public void setTimestamp();
 

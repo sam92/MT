@@ -28,19 +28,19 @@ public class TestCaseImplementation implements TestCase {
     private List<String> testCMS;
 
     public TestCaseImplementation(String url) {
-        current = new SiteImplementation_noReanalyze(url);
+        current = new SiteImplementation(url);
         if (!current.getRealUrl().equalsIgnoreCase("Unreachable")) {
             wb = new PhantomDriver(PhantomDriver.capabilities());
-            testCMS=new ArrayList<>();
+            testCMS = new ArrayList<>();
         } else {
             wb = null;
         }
     }
 
     public TestCaseImplementation(String url, WebDriver webDriv) {
-        current = new SiteImplementation_noReanalyze(url);
+        current = new SiteImplementation(url);
         wb = webDriv;
-        testCMS=new ArrayList<>();
+        testCMS = new ArrayList<>();
     }
 
     private void searchLogin(WebDriver driver, Site url, boolean cmsTest, List<String> listCMS) {//c'è il problema dei siti che presentano una pagina 404, non so se veramente sono wordpress o no servirebbe wappalyzer
@@ -57,11 +57,11 @@ public class TestCaseImplementation implements TestCase {
             for (String currentString : listCMS) {
                 System.out.println(currentString);
                 //faccio un ping prima di iniziare tranne per current=""
-                if (currentString.isEmpty() || SiteImplementation_noReanalyze.isReachable(currentString)) {
+                if (currentString.isEmpty() || SiteImplementation.isReachable(currentString)) {
                     String[] coppiePageAction = searchForFormInThisPage(driver, currentString);
                     if (!(coppiePageAction[0].isEmpty() && coppiePageAction[1].isEmpty() && coppiePageAction[2].isEmpty())) {
                         System.out.println("Tripla:\n" + coppiePageAction[0] + "\n" + coppiePageAction[1] + "\n" + coppiePageAction[2] + "\n");
-                        ((SiteImplementation_noReanalyze)url).insertIntoResult(coppiePageAction);
+                        ((SiteImplementation) url).insertIntoResult(coppiePageAction);
                     }
                 }
             }
@@ -141,7 +141,8 @@ public class TestCaseImplementation implements TestCase {
         //System.out.println("SearchAndFollow: " + driver.getCurrentUrl());
         List<WebElement> elements = new ArrayList<>();
         boolean notFinished = true;
-        String[] nameLogin = (String[]) defaultWordsLogin().toArray();
+        List<String> nameLogin =  defaultWordsLogin();
+        //String[] nameLogin = (String[]) defaultWordsLogin().toArray();
         int i = -1;
         while (elements.isEmpty() && notFinished) {
             i++;
@@ -150,15 +151,15 @@ public class TestCaseImplementation implements TestCase {
             elements.addAll(driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin[i] + "')]")));
             elements.addAll(driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin[i] + "')]")));
              */
-            elements = driver.findElements(By.partialLinkText(nameLogin[i]));//non credo che funzioni questo
-            System.out.println("PartialLink " + nameLogin[i] + ":\t" + elements.size());
-            System.out.println("A " + nameLogin[i] + ":\t" + driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin[i] + "')]")).size());
-            System.out.println("Button " + nameLogin[i] + ":\t" + driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin[i] + "')]")).size());
+            elements = driver.findElements(By.partialLinkText(nameLogin.get(i)));//non credo che funzioni questo
+            System.out.println("PartialLink " + nameLogin.get(i) + ":\t" + elements.size());
+            System.out.println("A " + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]")).size());
+            System.out.println("Button " + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]")).size());
             if (elements.isEmpty()) {
-                elements = driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin[i] + "')]"));
+                elements = driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]"));
             }
             if (elements.isEmpty()) {
-                elements = driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin[i] + "')]"));
+                elements = driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]"));
             }
             //driver.manage().timeouts().setScriptTimeout(4, TimeUnit.SECONDS);
             for (WebElement el : elements) {
@@ -194,7 +195,7 @@ public class TestCaseImplementation implements TestCase {
                 elements = driver.findElements(By.xpath(".//a[contains(text(), \"Login\")]"));
                 System.out.println(elements.size());*/
 
-            if (i == nameLogin.length - 1) {
+            if (i == nameLogin.size() - 1) {
                 notFinished = false;
             }
         }
@@ -259,36 +260,46 @@ public class TestCaseImplementation implements TestCase {
     @Override
     public void searchFormInThisPattern(List pattern) {
         //provare a fare il ping prima
-        if(pattern.isEmpty()){
-            testAll();
-            pattern=testCMS;
+        if (!current.isUnreachable()) {
+            if (pattern.isEmpty()) {
+                testAll();
+                pattern = testCMS;
+            }
+            for (String s : (List<String>) pattern) {
+
+            }
+            searchLogin(wb, current, true, (List<String>) pattern);
         }
-        for(String s : (List<String>) pattern){
-            
-        }
-        searchLogin(wb, current, true, (List<String>) pattern);
     }
 
     @Override
     public void searchFormInLinkedPagesOfHomepage() {
-        List<String> listaLink = searchAndFollowLink(wb, current);
-        searchLogin(wb, current, false, listaLink);
+        if (!current.isUnreachable()) {
+            List<String> listaLink = searchAndFollowLink(wb, current);
+            searchLogin(wb, current, false, listaLink);
+        }
     }
 
     @Override
     public void tryLoginSubmit() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (!current.isUnreachable()) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
     }
 
     @Override
     public List searchForWebmasterContacts() {
-        wb.get(current.getRealUrl());
-        //public static final String EMAIL_VERIFICATION = "^([\\w-\\.]+){1,64}@([\\w&&[^_]]+){2,255}.[a-z]{2,}$";
-        //becca il 99% delle email
-        //https://stackoverflow.com/questions/11454798/how-can-i-check-if-some-text-exist-or-not-in-the-page
+        if (!current.isUnreachable()) {
+            wb.get(current.getRealUrl());
+            //public static final String EMAIL_VERIFICATION = "^([\\w-\\.]+){1,64}@([\\w&&[^_]]+){2,255}.[a-z]{2,}$";
+            //becca il 99% delle email
+            //https://stackoverflow.com/questions/11454798/how-can-i-check-if-some-text-exist-or-not-in-the-page
+        }
         return new ArrayList<>();
+
     }
-/*
+
+    /*
     public static List<String> defaultPattern() {
         List<String> listCMS = new ArrayList<>();
         listCMS.add(""); //in homepage
@@ -299,11 +310,12 @@ public class TestCaseImplementation implements TestCase {
         listCMS.add("/member"); //Typo3
         return listCMS;
     }
-*/
+     */
     @Override
-        public List<String> listCMS() {
+    public List<String> listCMS() {
         return testCMS;
     }
+
     public static List<String> defaultWordsLogin() {
         List<String> nameLogin = new ArrayList<>();
         nameLogin.add("Sign in");
@@ -325,45 +337,74 @@ public class TestCaseImplementation implements TestCase {
 
     @Override
     public void testWordpress() {
-        if(!testCMS.contains("/wp-login.php")) testCMS.add("/wp-login.php");
-        if(!testCMS.contains("/login")) testCMS.add("/login");
+        if (testCMS != null) {
+            if (!testCMS.contains("/wp-login.php")) {
+                testCMS.add("/wp-login.php");
+            }
+            if (!testCMS.contains("/login")) {
+                testCMS.add("/login");
+            }
+        }
     }
 
     @Override
     public void testJoomla() {
-        if(!testCMS.contains("/administrator")) testCMS.add("/administrator");
-        if(!testCMS.contains("/login")) testCMS.add("/login");
+        if (testCMS != null) {
+            if (!testCMS.contains("/administrator")) {
+                testCMS.add("/administrator");
+            }
+            if (!testCMS.contains("/login")) {
+                testCMS.add("/login");
+            }
+        }
     }
 
     @Override
     public void testPlone() {
-        if(!testCMS.contains("/login")) testCMS.add("/login");
+        if (testCMS != null) {
+            if (!testCMS.contains("/login")) {
+                testCMS.add("/login");
+            }
+        }
     }
 
     @Override
     public void testDrupal() {
-        if(!testCMS.contains("/user")) testCMS.add("/user");
+        if (testCMS != null) {
+            if (!testCMS.contains("/user")) {
+                testCMS.add("/user");
+            }
+        }
     }
-    
+
     @Override
-    public void testTypo3(){
-        if(!testCMS.contains("/member")) testCMS.add("/member");
+    public void testTypo3() {
+        if (testCMS != null) {
+            if (!testCMS.contains("/member")) {
+                testCMS.add("/member");
+            }
+        }
     }
 
     @Override
     public void testHomepage() {
-        if(!testCMS.contains("")) testCMS.add("");
+        if (testCMS != null) {
+            if (!testCMS.contains("")) {
+                testCMS.add("");
+            }
+        }
     }
 
     @Override
     public void testAll() {
-        testWordpress();
-        testJoomla();
-        testPlone();
-        testDrupal();
-        testTypo3();
-        testHomepage();
+        if (testCMS != null) {
+            testWordpress();
+            testJoomla();
+            testPlone();
+            testDrupal();
+            testTypo3();
+            testHomepage();
+        }
     }
 
 }
-

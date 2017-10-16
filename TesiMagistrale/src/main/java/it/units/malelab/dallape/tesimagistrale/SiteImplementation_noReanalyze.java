@@ -240,4 +240,9 @@ public class SiteImplementation_noReanalyze implements Site {
     public Document toDocument() {
         return Document.parse(toJSONString());
     }
+
+    @Override
+    public boolean isUnreachable() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }

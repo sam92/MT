@@ -216,6 +216,9 @@ public class SiteImplementation implements Site {
         }
         return a;
     }
+    public boolean isUnreachable(){
+        return "Unreachable".equals(url_after_get);
+    }
 
     public static boolean isReachable(String url) {
         boolean reachable = false;

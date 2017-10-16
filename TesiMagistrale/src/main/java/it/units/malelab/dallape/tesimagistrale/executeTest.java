@@ -37,6 +37,7 @@ public class executeTest extends Thread {
         this.reanalyze=con.getReanalyze();
         this.whatTest = con.getTests();
        progress=con.getProgress();
+       this.map=map;
     }
 
     @Override
@@ -74,6 +75,7 @@ public class executeTest extends Thread {
                     if ((!db.existADocumentWithThisUrlInSITES(s) || reanalyze) && !s.trim().isEmpty()) {
                         System.out.println(COLLECTION_SITES);
                         TestCase test = new TestCaseImplementation(s);
+                        if(!((SiteImplementation)test.getSite()).isUnreachable()){
                         if (whatTest.size() >= 6 && (whatTest.contains("wordpress") || whatTest.contains("joomla") || whatTest.contains("plone") || whatTest.contains("drupal") || whatTest.contains("typo3"))) {
                             test.testAll();
                         } else {
@@ -110,6 +112,7 @@ public class executeTest extends Thread {
                     } else {
                         System.out.println("Already exist: " + s);
                     }
+                }
                     progress.replace(s, false,true);
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
                 db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));

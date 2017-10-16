@@ -46,7 +46,7 @@ public class howMuch extends HttpServlet {
                 if (alreadyscan != c.getNrAlreadyScan()) {
                     alreadyscan = c.getNrAlreadyScan();
                     StringBuilder data = new StringBuilder(128);
-                    data.append("{\"current\":").append(c.getCurrent()).append(",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
+                    data.append("{\"current\":").append("\""+c.getCurrent()+"\"").append(",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
                     System.out.println("DATA: " + data);
                     PrintWriter writer = response.getWriter();
                     // write the event type (make sure to include the double newline)

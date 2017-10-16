@@ -6,7 +6,6 @@
 package it.units.malelab.dallape.tesimagistrale;
 
 import com.mongodb.MongoException;
-import com.sun.xml.internal.ws.client.RequestContext;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -20,6 +19,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.bson.Document;
 
 /*
@@ -75,8 +75,8 @@ public class ServletJob extends HttpServlet {
                     Conditions con = mapTask.get(hash.trim());
                     boolean resume = false;
                         if (con == null) {//start condition non ci sono altri task uguali iniziati
-                            List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
-                            List<String> test = Arrays.asList(request.getParameterValues("test"));
+                            List<String> sitesInInput = new ArrayList<>(Arrays.asList(request.getParameterValues("site")));
+                            List<String> test = new ArrayList<>(Arrays.asList(request.getParameterValues("test")));
                             boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
                             List<String> sites = new ArrayList<>();
                             for (String s : sitesInInput) {
@@ -86,7 +86,7 @@ public class ServletJob extends HttpServlet {
                             for (int i = 0; i < sites.size(); i++) {
                                 phrase += sites.get(i);
                             }
-                            hash = getHashSHA1(phrase);
+                            hash = DigestUtils.sha1Hex(phrase);
                             for (String s : sites) {
                                 if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
                                     //inserisco tutti i sites nella lista dello stato.
@@ -189,17 +189,5 @@ public class ServletJob extends HttpServlet {
     public String getServletInfo() {
         return "Short description";
     }// </editor-fold>
-
-    public static String getHashSHA1(String request) throws UnsupportedEncodingException {
-        byte[] byteArray = request.trim().getBytes("UTF-8");
-        MessageDigest md = null;
-        try {
-            md = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException ex) {
-            System.out.println(ex.getMessage());
-        }
-
-        return new String(md.digest(byteArray));
-    }
 
 }
