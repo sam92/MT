@@ -10,12 +10,8 @@ package it.units.malelab.dallape.tesimagistrale;
  * @author Samuele
  */
 import com.mongodb.MongoException;
-import com.mongodb.client.FindIterable;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.bson.Document;
 
 public class executeTest extends Thread {
@@ -23,28 +19,23 @@ public class executeTest extends Thread {
     //private volatile boolean stop=false;
     private final String COLLECTION_SITES;
     private final String ACTUAL_STATE;
-    private List<String> sites;
     private Map<String,Boolean> progress;
     private final String task_id;
     private Map<String, Conditions> map;
+    private Conditions con;
     private List<String> whatTest;
     private boolean reanalyze;
-    private boolean stopped;
-    private boolean paused;
 
-    public executeTest(Map<String, Conditions> map, Conditions con) {
+    public executeTest(Map<String, Conditions> map,Conditions con) {
         this.COLLECTION_SITES = con.getNameCollection();
         this.ACTUAL_STATE=con.getNameState();
-        this.sites = con.getSites();
         this.task_id = con.getTaskID();
-        this.map = map;
         if (!con.getTests().contains("")) {
             con.getTests().add("");
         }
+        this.con=con;
         this.reanalyze=con.getReanalyze();
         this.whatTest = con.getTests();
-        stopped = false;
-        paused=false;
        progress=con.getProgress();
     }
 
@@ -74,9 +65,10 @@ public class executeTest extends Thread {
             assert(nrElement==db.howMuchRemainsInCollection("task_id",task_id, ACTUAL_STATE));
             
             for (String s : progress.keySet()) {
+                con.setCurrent(s);
                 if(!progress.get(s)){
                 synchronized (this) {
-                    if (stopped) {
+                    if (con.isStopped()) {
                         break;
                     }
                     if ((!db.existADocumentWithThisUrlInSITES(s) || reanalyze) && !s.trim().isEmpty()) {
@@ -114,16 +106,17 @@ public class executeTest extends Thread {
                         test.quitWebDriver();
                         //db.insertSite(site, NAME_COLLECTION);
                         db.updateSite(site, COLLECTION_SITES);
-                        progress.replace(s, false,true);
+                        
                     } else {
                         System.out.println("Already exist: " + s);
                     }
+                    progress.replace(s, false,true);
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
                 db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
                 }
             }
             }
-            if(!paused){
+            if(!con.isPaused()){
             //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
             db.getMongoDB().getCollection(ACTUAL_STATE).deleteMany(new Document("task_id", task_id));
             //rimuovo l'associazione tra task_id e thread tanto ho finito
@@ -137,16 +130,12 @@ public class executeTest extends Thread {
     }
 
     public synchronized void kill() {
-        stopped = true;
+        con.setStopped(true);
+        
         notify();
     }
     public synchronized void pause(){
-        paused=true;
-        stopped = true;
+        con.setPaused(true);
         notify();
-    }
-
-    public long getLenghtSites() {
-        return sites.size();
     }
 }

@@ -46,7 +46,7 @@ public class ServletJob extends HttpServlet {
             throws ServletException, IOException {
 
         ServletContext context = getServletContext();
-        Map<String, Conditions> mappaConditions = (Map<String, Conditions>) context.getAttribute("map");
+        Map<String, Conditions> mapTask = (Map<String, Conditions>) context.getAttribute("map");
         String action = request.getParameter("condition");
         if (action == null) {
             action = "";
@@ -55,10 +55,9 @@ public class ServletJob extends HttpServlet {
         if (hash == null) {
             hash = "";
         }
-
         String COLLECTION_SITES = "SITES";
         String ACTUAL_STATE = "STATE_LIST_SITES";
-        String HASH_CONDITIONS = "HASH_CONDITIONS"; //mappa hash-thread ossia task_id-thread 
+        String HASH_CONDITIONS = "HASH_CONDITIONS"; //mappa hash-conditions
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
 //fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
@@ -73,78 +72,76 @@ public class ServletJob extends HttpServlet {
 
             switch (action) {
                 case "start":
-                    Conditions con;
-                    boolean resume=false;
-                    if(!hash.trim().isEmpty()){
-                    if (mappaConditions.get(hash) == null) {//start condition
-                        List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
-                        List<String> test = Arrays.asList(request.getParameterValues("test"));
-                        boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
-                        List<String> sites = new ArrayList<>();
-                        for (String s : sitesInInput) {
-                            sites.add(s.trim());
-                        }
-                        String phrase = "";
-                        for (int i = 0; i < sites.size(); i++) {
-                            phrase += sites.get(i);
-                        }
-                        String task_id = getHashSHA1(phrase);
-                        for (String s : sites) {
-                            if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
-                                //inserisco tutti i sites nella lista dello stato.
-                                db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", task_id));
-                            } else {
-                                System.out.println("Already exist: " + s);
+                    Conditions con = mapTask.get(hash.trim());
+                    boolean resume = false;
+                        if (con == null) {//start condition non ci sono altri task uguali iniziati
+                            List<String> sitesInInput = Arrays.asList(request.getParameterValues("site"));
+                            List<String> test = Arrays.asList(request.getParameterValues("test"));
+                            boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
+                            List<String> sites = new ArrayList<>();
+                            for (String s : sitesInInput) {
+                                sites.add(s.trim());
                             }
+                            String phrase = "";
+                            for (int i = 0; i < sites.size(); i++) {
+                                phrase += sites.get(i);
+                            }
+                            hash = getHashSHA1(phrase);
+                            for (String s : sites) {
+                                if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
+                                    //inserisco tutti i sites nella lista dello stato.
+                                    db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", hash));
+                                } else {
+                                    System.out.println("Already exist: " + s);
+                                }
+                            }
+                            con = new Conditions(sites, test, reanalyze, hash, COLLECTION_SITES, ACTUAL_STATE);
+                            mapTask.put(hash, con);
+                        } else if (con.isPaused()) { //resume condition
+                            resume = true;
+                            con = mapTask.get(hash);
+                            con.setPaused(false);
                         }
-                        con = new Conditions(sites, test, reanalyze, task_id, COLLECTION_SITES, ACTUAL_STATE);
-                        mappaConditions.put(task_id, con);
-                        request.setAttribute("hash", task_id);
-                    } else {
-                        //sto facendo una resume
-                        resume=true;
-                        con = mappaConditions.get(hash);
-                    }
-                    Thread t = new executeTest(mappaConditions, con);
-                    con.setThread(t);
-                    t.start();
-                    //mettere mappa in DB
-                    if(!resume){
-                         //fare un dispatcher verso il jsp che gestisce la progress bar
-                         //response with progress bar and task_id to stop operations
-                         //fare un dispatcher e mandare indietro task_id
-                        request.getRequestDispatcher("progress.jsp").forward(request, response);
-                    }
 
-                    }
+                            request.setAttribute("hash", hash);
+                            Thread t = new executeTest(mapTask,con);
+                            con.setThread(t);
+                            t.start();
+                        
+                        //mettere mappa in DB
+                        if (!resume) {
+                            //fare un dispatcher verso il jsp che gestisce la progress bar
+                            //response with progress bar and task_id to stop operations
+                            //fare un dispatcher e mandare indietro task_id
+                            request.getRequestDispatcher("progress.jsp").forward(request, response);
+                        }
+
                     break;
                 case "stop":
-                    Conditions c = mappaConditions.get(hash);
+                    Conditions c = mapTask.remove(hash);
                     if (c != null && c.getThread() != null) {
                         Thread toBeStopped = c.getThread();
                         ((executeTest) toBeStopped).kill();
                         //mappaConditions.remove(hash);
                         //db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
                         //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
-                    } else if (c != null && c.getThread() == null) {
-                        mappaConditions.remove(hash);
                     }
                     //sovrascrivere mappa in db
                     request.getRequestDispatcher("stop.html").forward(request, response);
                     break;
                 case "pause":
                     //setta nelle conditions come lista di sites quelli che sono rimasti in db
-                    Conditions condit = mappaConditions.get(hash);
+                    Conditions condit = mapTask.get(hash);
+                    
                     if (condit != null && condit.getThread() != null) {
                         Thread toBePaused = condit.getThread();
                         ((executeTest) toBePaused).pause();
-                    } else if (condit != null && condit.getThread() == null) {
-                        mappaConditions.remove(hash);
-                    }
+                        condit.setPaused(true);
+                    } 
                     //sovrascrivere la mappa in db
-                    
+
                     break;
-                default: //dispatcher
+                default: //dispatcher 404
                     break;
             }
 

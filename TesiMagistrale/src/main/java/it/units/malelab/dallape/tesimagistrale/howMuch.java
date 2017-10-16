@@ -8,6 +8,8 @@ package it.units.malelab.dallape.tesimagistrale;
 import com.mongodb.MongoException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Map;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -31,33 +33,41 @@ public class howMuch extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("application/json");
-           response.setCharacterEncoding("UTF-8");
-        String task_id=request.getParameter("hash");
-        
-            try (PrintWriter out = response.getWriter()) {
-                
-            long value=-1;
-            if(task_id!=null && !task_id.trim().isEmpty()){
-            try (database db = new database()) {
-                if (!db.collectionExist("STATE_LIST_SITES")) {
-                db.createCollection("STATE_LIST_SITES");
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        String task_id = request.getParameter("hash");
+        ServletContext context = getServletContext();
+        Map<String, Conditions> mapTask = (Map<String, Conditions>) context.getAttribute("map");
+        Conditions c = mapTask.get(task_id);
+        if (c != null) {
+            int total = c.getSites().size();
+            int alreadyscan = c.getNrAlreadyScan();
+            while (total != alreadyscan) {
+                if (alreadyscan != c.getNrAlreadyScan()) {
+                    alreadyscan = c.getNrAlreadyScan();
+                    StringBuilder data = new StringBuilder(128);
+                    data.append("{\"current\":").append(c.getCurrent()).append(",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
+                    System.out.println("DATA: " + data);
+                    PrintWriter writer = response.getWriter();
+                    // write the event type (make sure to include the double newline)
+                    writer.write("event: " + "status" + "\n\n");
+                    // write the actual data
+                    // this could be simple text or could be JSON-encoded text that the
+                    // client then decodes
+                    writer.write("data: " + data.toString() + "\n\n");
+                    // flush the buffers to make sure the container sends the bytes
+                    writer.flush();
+                    response.flushBuffer();
+                    //writeEvent(response, "status", data.toString());
+                }
             }
-                value=db.howMuchRemainsInSTATE(task_id);
-                
-            }
-            catch (IllegalArgumentException | MongoException e) {
-            System.out.println(e.getMessage());
-            //throw new RuntimeException(e);
+            PrintWriter writer = response.getWriter();
+                    writer.write("event: " + "status" + "\n\n");
+                    writer.write("data: " + "{\"complete\":true}" + "\n\n");
+                    writer.flush();
+                    response.flushBuffer();
+            //writeEvent(response, "status", "{\"complete\":true}");
         }
-            }
-            JSONObject json = new JSONObject();
-        
-        json.put("value", value);
-            out.println(json.toString());
-        
-        }
-        
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
@@ -98,5 +108,25 @@ public class howMuch extends HttpServlet {
     public String getServletInfo() {
         return "Short description";
     }// </editor-fold>
+
+    /*protected void writeEvent(HttpServletResponse resp,
+            String event, String message)
+            throws IOException {
+
+        // get the writer to send text responses
+        PrintWriter writer = resp.getWriter();
+
+        // write the event type (make sure to include the double newline)
+        writer.write("event: " + event + "\n\n");
+
+        // write the actual data
+        // this could be simple text or could be JSON-encoded text that the
+        // client then decodes
+        writer.write("data: " + message + "\n\n");
+
+        // flush the buffers to make sure the container sends the bytes
+        writer.flush();
+        resp.flushBuffer();
+    }*/
 
 }

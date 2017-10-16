@@ -6,6 +6,7 @@
 package it.units.malelab.dallape.tesimagistrale;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +25,9 @@ public class Conditions {
     private String NAME_COLLECTION;
     private String NAME_STATE;
     private Thread t;
+    private boolean paused = false;
+    private boolean stopped = false;
+    private String current = "";
     private Map<String, Boolean> progress;
 
     public Conditions() {
@@ -55,7 +59,8 @@ public class Conditions {
             progress.put(s, false);
         }
     }
-    public Conditions(Map<String,Boolean> progress, List<String> test, boolean reanalyze, String taskID, String NAME_COLLECTION, String NAME_STATE) {
+
+    public Conditions(Map<String, Boolean> progress, List<String> test, boolean reanalyze, String taskID, String NAME_COLLECTION, String NAME_STATE) {
         this.NAME_COLLECTION = NAME_COLLECTION;
         this.NAME_STATE = NAME_STATE;
         this.reanalyze = reanalyze;
@@ -121,13 +126,59 @@ public class Conditions {
         this.t = t;
     }
 
+    public boolean isPaused() {
+        return paused;
+    }
+
+    public boolean isStopped() {
+        return stopped;
+    }
+
+    public void setPaused(boolean value) {
+        this.paused = value;
+    }
+
+    public void setStopped(boolean value) {
+        this.stopped = value;
+    }
+
+    public void setCurrent(String current) {
+        this.current = current;
+    }
+
+    public String getCurrent() {
+        return current;
+    }
+
     public Map<String, Boolean> getProgress() {
         return progress;
     }
 
+    public long getSizeSites() {
+        return progress.keySet().size();
+    }
+
+    public int getNrAlreadyScan() {
+        int size = 0;
+        List<Boolean> l = new ArrayList<>(progress.values());
+        Iterator<Boolean> it = l.iterator();
+        while (it.hasNext()) {
+            if (it.next()) {
+                size++;
+            }
+        }
+        return size;
+    }
+
     public Document toDocument() {
         Document doc = new Document();
-        doc.append("progress", progress).append("test", test).append("reanalyze", reanalyze).append("hash", taskID).append("collection", NAME_COLLECTION).append("state", NAME_STATE);
+        String status = "undefined";
+        if (paused) {
+            status = "paused";
+        } else if (stopped) {
+            status = "stopped";
+        }
+        doc.append("progress", progress).append("test", test).append("reanalyze", reanalyze).append("status", status).append("hash", taskID).append("collection", NAME_COLLECTION).append("state", NAME_STATE);
         return doc;
     }
 
@@ -144,7 +195,19 @@ public class Conditions {
         }
         List<String> test = (List<String>) doc.get("test");
         //List<String> sites = new ArrayList<>(mappa.keySet());
-        return new Conditions(map, test, doc.getBoolean("reanalyze"), doc.getString("hash"), doc.getString("collection"), doc.getString("state"));
+        Conditions c = new Conditions(map, test, doc.getBoolean("reanalyze"), doc.getString("hash"), doc.getString("collection"), doc.getString("state"));
+        switch (doc.getString("status")) {
+            case "paused":
+                c.setPaused(true);
+                break;
+            case "stopped":
+                c.setStopped(true);
+                break;
+            default:
+                c.setStopped(true);
+                break;
+        }
+        return c;
     }
 
 }
