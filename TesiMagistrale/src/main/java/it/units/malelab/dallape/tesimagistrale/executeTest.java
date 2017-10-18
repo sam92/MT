@@ -104,20 +104,23 @@ public class executeTest extends Thread {
                         test.searchFormInThisPattern(test.listCMS());
                         test.searchFormInLinkedPagesOfHomepage();
                         Site site = (Site) test.getSite();
+                        site.setTASKID(task_id);
                         site.setVisitedNow();
                         test.quitWebDriver();
                         //db.insertSite(site, NAME_COLLECTION);
-                        db.updateSite(site, COLLECTION_SITES);
+                        boolean result=db.updateSite(site, COLLECTION_SITES);
+                        //usare result!!!
                         
                     } else {
                         System.out.println("Already exist: " + s);
                     }
                 }
                 progress.replace(s, false,true);
-                db.updateValueMap(task_id, con, COLLECTION_SITES, false);
+                db.updateValueMap(task_id, con, stato, false);
                 
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
                 db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
+                System.out.println("Cancello "+s);
                 }
             }
             }
@@ -125,8 +128,11 @@ public class executeTest extends Thread {
             //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
             db.getMongoDB().getCollection(ACTUAL_STATE).deleteMany(new Document("task_id", task_id));
             //rimuovo l'associazione tra task_id e thread tanto ho finito
-            db.deleteTaskIDFromMap(task_id, "TASKID_CONDITIONS");
+            db.deleteTaskIDFromMap(task_id, stato);
             //map.remove(task_id);
+            }
+            else{
+                db.updateValueMap(task_id, con, stato, false);
             }
 
         } catch (IllegalArgumentException | MongoException e) {
