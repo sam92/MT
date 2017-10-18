@@ -29,12 +29,8 @@ public class TestCaseImplementation implements TestCase {
 
     public TestCaseImplementation(String url) {
         current = new SiteImplementation(url);
-        if (!current.getRealUrl().equalsIgnoreCase("Unreachable")) {
-            wb = new PhantomDriver(PhantomDriver.capabilities());
-            testCMS = new ArrayList<>();
-        } else {
-            wb = null;
-        }
+        testCMS = new ArrayList<>();        
+       wb= (!current.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
     }
 
     public TestCaseImplementation(String url, WebDriver webDriv) {
