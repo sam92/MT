@@ -16,12 +16,8 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.bson.Document;
 
 /**
@@ -163,7 +159,22 @@ public class database implements java.lang.AutoCloseable {
         }
             
     }
-
+    
+    public void updateValueMap(String key, Conditions con, String collection, boolean insertIfNotExixst) {
+        if (!this.collectionExist(collection)) {
+            db.createCollection(collection);
+        }
+        Document document = db.getCollection(collection).find(new Document("hash", key)).first();
+        if (document == null && insertIfNotExixst) {
+            document = new Document("hash", key).append("value",con.toDocument());
+            db.getCollection(collection).insertOne(document);
+        }
+        else{
+            db.getCollection(collection).updateOne(document, new Document("hash", key).append("value",con.toDocument()));
+        }
+            
+    }
+    
     public Conditions getConditionFromMap(String task_id, String collection) {
         if (!this.collectionExist(collection)) {
             db.createCollection(collection);
