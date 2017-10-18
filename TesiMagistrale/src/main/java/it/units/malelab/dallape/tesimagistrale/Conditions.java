@@ -17,14 +17,13 @@ import org.bson.Document;
  * @author Samuele
  */
 public class Conditions {
-
     private List<String> sites;
     private List<String> test;
     private boolean reanalyze;
-    private String taskID;
+    //private String task_id;
     private String NAME_COLLECTION;
     private String NAME_STATE;
-    private Thread t;
+    //private Thread t;
     private boolean paused = false;
     private boolean stopped = false;
     private String current = "";
@@ -33,26 +32,11 @@ public class Conditions {
     public Conditions() {
     }
 
-    public Conditions(List<String> sites, List<String> test, boolean reanalyze, String taskID, String NAME_COLLECTION, String NAME_STATE, Thread t) {
+    public Conditions(List<String> sites, List<String> test, boolean reanalyze, String NAME_COLLECTION, String NAME_STATE) {
         this.NAME_COLLECTION = NAME_COLLECTION;
         this.NAME_STATE = NAME_STATE;
         this.reanalyze = reanalyze;
         this.sites = sites;
-        this.taskID = taskID;
-        this.test = test;
-        this.t = t;
-        progress = new ConcurrentHashMap<>();
-        for (String s : sites) {
-            progress.put(s, false);
-        }
-    }
-
-    public Conditions(List<String> sites, List<String> test, boolean reanalyze, String taskID, String NAME_COLLECTION, String NAME_STATE) {
-        this.NAME_COLLECTION = NAME_COLLECTION;
-        this.NAME_STATE = NAME_STATE;
-        this.reanalyze = reanalyze;
-        this.sites = sites;
-        this.taskID = taskID;
         this.test = test;
         progress = new ConcurrentHashMap<>();
         for (String s : sites) {
@@ -60,12 +44,12 @@ public class Conditions {
         }
     }
 
-    public Conditions(Map<String, Boolean> progress, List<String> test, boolean reanalyze, String taskID, String NAME_COLLECTION, String NAME_STATE) {
+    public Conditions(Map<String, Boolean> progress, List<String> test, boolean reanalyze, String NAME_COLLECTION, String NAME_STATE) {
         this.NAME_COLLECTION = NAME_COLLECTION;
         this.NAME_STATE = NAME_STATE;
         this.reanalyze = reanalyze;
         this.sites = new ArrayList<>(progress.keySet());
-        this.taskID = taskID;
+        //this.task_id = taskID;
         this.test = test;
         this.progress = progress;
     }
@@ -81,11 +65,11 @@ public class Conditions {
     public void setReanalyze(boolean reanalyze) {
         this.reanalyze = reanalyze;
     }
-
+/*
     public void setTaskID(String taskID) {
-        this.taskID = taskID;
+        this.task_id = taskID;
     }
-
+*/
     public void setNameCollection(String nameCollection) {
         this.NAME_COLLECTION = nameCollection;
     }
@@ -105,11 +89,11 @@ public class Conditions {
     public boolean getReanalyze() {
         return reanalyze;
     }
-
+/*
     public String getTaskID() {
-        return taskID;
+        return task_id;
     }
-
+*/
     public String getNameCollection() {
         return NAME_COLLECTION;
     }
@@ -117,7 +101,7 @@ public class Conditions {
     public String getNameState() {
         return NAME_STATE;
     }
-
+/*
     public Thread getThread() {
         return t == null ? null : (t.isAlive() ? t : null);
     }
@@ -125,7 +109,7 @@ public class Conditions {
     public void setThread(Thread t) {
         this.t = t;
     }
-
+*/
     public boolean isPaused() {
         return paused;
     }
@@ -178,7 +162,11 @@ public class Conditions {
         } else if (stopped) {
             status = "stopped";
         }
-        doc.append("progress", progress).append("test", test).append("reanalyze", reanalyze).append("status", status).append("hash", taskID).append("collection", NAME_COLLECTION).append("state", NAME_STATE);
+        List<Document> lista=new ArrayList<>();
+        for(String s: progress.keySet()){
+            lista.add(new Document("site",s).append("done",progress.get(s)));
+        }
+        doc.append("progress", lista).append("test", test).append("reanalyze", reanalyze).append("status", status).append("collection", NAME_COLLECTION).append("state", NAME_STATE);
         return doc;
     }
 
@@ -189,13 +177,16 @@ public class Conditions {
     public static Conditions fromJSON(String json) {
         Document doc = Document.parse(json);
         Map<String, Boolean> map = new ConcurrentHashMap<>();
-        Document mappa = (Document) doc.get("progress");
-        for (String s : mappa.keySet()) {
+        List<Document> mappa = (List<Document>) doc.get("progress");
+        /*for (String s : mappa.keySet()) {
             map.put(s, mappa.getBoolean(s));
+        }*/
+        for(Document s: mappa){
+            map.put(s.getString("site"), s.getBoolean("done"));
         }
         List<String> test = (List<String>) doc.get("test");
         //List<String> sites = new ArrayList<>(mappa.keySet());
-        Conditions c = new Conditions(map, test, doc.getBoolean("reanalyze"), doc.getString("hash"), doc.getString("collection"), doc.getString("state"));
+        Conditions c = new Conditions(map, test, doc.getBoolean("reanalyze"), doc.getString("collection"), doc.getString("state"));
         switch (doc.getString("status")) {
             case "paused":
                 c.setPaused(true);
@@ -204,7 +195,6 @@ public class Conditions {
                 c.setStopped(true);
                 break;
             default:
-                c.setStopped(true);
                 break;
         }
         return c;

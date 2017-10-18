@@ -181,17 +181,19 @@ public class SiteImplementation implements Site {
         }
         json.put("url_site", url);
         json.put("url_site_true", url_after_get);
+        json.put("task_id",TASK_ID);
         json.put("visited", visited);
-        json.put("timestamp", timestamp);
+        json.put("timestamp", timestamp.toString());
         json.put("result", new JSONArray(list));
         return json;
     }
 
-    public static SiteImplementation_noReanalyze fromJSON(JSONObject json) {
-        SiteImplementation_noReanalyze site = new SiteImplementation_noReanalyze(json.getString("url_site"));
+    public static SiteImplementation fromJSON(JSONObject json) {
+        SiteImplementation site = new SiteImplementation(json.getString("url_site"));
         site.setVisited(json.getBoolean("visited"));
         site.setRealUrl(json.getString("url_site_true"));
-        site.setTimestamp((Timestamp) json.get("timestamp"));
+        site.setTimestamp(Timestamp.valueOf(json.getString("timestamp")));
+        site.setTASKID(json.getString("task_id"));
         JSONArray result = json.getJSONArray("result");
 
         for (int i = 0; i < result.length(); i++) {
@@ -216,6 +218,7 @@ public class SiteImplementation implements Site {
         }
         return a;
     }
+    @Override
     public boolean isUnreachable(){
         return "Unreachable".equals(url_after_get);
     }
@@ -244,7 +247,7 @@ public class SiteImplementation implements Site {
             Document w = new Document().append("link_click", current[2]).append("action", current[1]).append("location_form", current[0]);
             list.add(w);
         }      
-        Document doc=new Document("url_site", url).append("url_site_true", url_after_get).append("visited", visited).append("timestamp", timestamp).append("result",list);
+        Document doc=new Document("url_site", url).append("url_site_true", url_after_get).append("task_id",TASK_ID).append("visited", visited).append("timestamp", timestamp.toString()).append("result",list);
         //Document doc = new Document("$push", new Document("result", new Document("timestamp", timestamp).append("url_finded", new JSONArray(list))));
         return doc;
     }

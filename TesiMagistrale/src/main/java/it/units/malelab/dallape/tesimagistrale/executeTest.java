@@ -19,25 +19,25 @@ public class executeTest extends Thread {
     //private volatile boolean stop=false;
     private final String COLLECTION_SITES;
     private final String ACTUAL_STATE;
-    private Map<String,Boolean> progress;
+    private final Map<String,Boolean> progress;
     private final String task_id;
-    private Map<String, Conditions> map;
-    private Conditions con;
-    private List<String> whatTest;
-    private boolean reanalyze;
+    private final Conditions con;
+    private final List<String> whatTest;
+    private final boolean reanalyze;
+    private final String stato;
 
-    public executeTest(Map<String, Conditions> map,Conditions con) {
+    public executeTest(String task_id,Conditions con, String nameStatoTable) {
         this.COLLECTION_SITES = con.getNameCollection();
         this.ACTUAL_STATE=con.getNameState();
-        this.task_id = con.getTaskID();
+        this.task_id = task_id;
         if (!con.getTests().contains("")) {
             con.getTests().add("");
         }
         this.con=con;
         this.reanalyze=con.getReanalyze();
         this.whatTest = con.getTests();
-       progress=con.getProgress();
-       this.map=map;
+        stato=nameStatoTable;
+        progress=con.getProgress();
     }
 
     @Override
@@ -63,6 +63,7 @@ public class executeTest extends Thread {
             for(Boolean b:progress.values()){
                 if(!b) nrElement++;
             }
+            //sarebbe da fare un'inizializzazione controllando in db quanti sono e nel caso aggiungendo
             assert(nrElement==db.howMuchRemainsInCollection("task_id",task_id, ACTUAL_STATE));
             
             for (String s : progress.keySet()) {
@@ -73,7 +74,6 @@ public class executeTest extends Thread {
                         break;
                     }
                     if ((!db.existADocumentWithThisUrlInSITES(s) || reanalyze) && !s.trim().isEmpty()) {
-                        System.out.println(COLLECTION_SITES);
                         TestCase test = new TestCaseImplementation(s);
                         if(!((SiteImplementation)test.getSite()).isUnreachable()){
                         if (whatTest.size() >= 6 && (whatTest.contains("wordpress") || whatTest.contains("joomla") || whatTest.contains("plone") || whatTest.contains("drupal") || whatTest.contains("typo3"))) {
@@ -113,7 +113,9 @@ public class executeTest extends Thread {
                         System.out.println("Already exist: " + s);
                     }
                 }
-                    progress.replace(s, false,true);
+                progress.replace(s, false,true);
+                db.updateValueMap(task_id, con, COLLECTION_SITES, false);
+                
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
                 db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
                 }
@@ -123,7 +125,8 @@ public class executeTest extends Thread {
             //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
             db.getMongoDB().getCollection(ACTUAL_STATE).deleteMany(new Document("task_id", task_id));
             //rimuovo l'associazione tra task_id e thread tanto ho finito
-            map.remove(task_id);
+            db.deleteTaskIDFromMap(task_id, "TASKID_CONDITIONS");
+            //map.remove(task_id);
             }
 
         } catch (IllegalArgumentException | MongoException e) {
@@ -134,7 +137,6 @@ public class executeTest extends Thread {
 
     public synchronized void kill() {
         con.setStopped(true);
-        
         notify();
     }
     public synchronized void pause(){
