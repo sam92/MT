@@ -68,6 +68,9 @@ public class database implements java.lang.AutoCloseable {
             //o anche a.toDocument()
             db.getCollection(collection).insertOne(a.toDocument());
         }
+        else{
+            createCollection(collection);
+        }
         return b;
     }
 
@@ -79,6 +82,9 @@ public class database implements java.lang.AutoCloseable {
             if (doc == null) {
                 b = false;
             }
+        }
+        else{
+            createCollection(collection);
         }
         return b;
     }
@@ -92,6 +98,9 @@ public class database implements java.lang.AutoCloseable {
                 l.add(Document.parse(site.toJSONString()));
             }
             db.getCollection(collection).insertMany(l);
+        }
+        else{
+            createCollection(collection);
         }
         return b;
     }
@@ -107,6 +116,7 @@ public class database implements java.lang.AutoCloseable {
     //return the first Document with this url or null
     public Document getTheFirstDocumentWithThisKeyValue(String key, String value, String collection) {
         MongoCollection<Document> docs = db.getCollection(collection);
+        //cosi era meglio db.getCollection(collection).find(new Document(key, value)).first();
         FindIterable<Document> lista = null;
         if (value == null) {
             lista = docs.find();
@@ -129,6 +139,7 @@ public class database implements java.lang.AutoCloseable {
     }
 
     public MongoCollection<Document> getDocumentsInThisCollection(String name) throws IllegalArgumentException {
+        if(! collectionExist(name)) createCollection(name);
         return db.getCollection(name);
     }
 
@@ -142,10 +153,14 @@ public class database implements java.lang.AutoCloseable {
     }
 
     public long howMuchRemainsInSTATE(String task_id) {
-        return db.getCollection("STATE_LIST_SITES").count(new Document("task_id", task_id));
+        //si potrebbe guardare nelle conditions al posto di fidarsi di questo
+        String collection="STATE_LIST_SITES";
+        if(! collectionExist(collection)) createCollection(collection);
+        return db.getCollection(collection).count(new Document("task_id", task_id));
     }
 
     public long howMuchRemainsInCollection(String key, Object value, String collection) {
+        if(! collectionExist(collection)) createCollection(collection);
         return db.getCollection(collection).count(new Document(key, value));
     }
     public void insertValueMap(String key, Conditions con, String collection) {
