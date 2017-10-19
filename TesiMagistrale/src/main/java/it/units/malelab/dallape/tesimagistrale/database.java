@@ -77,11 +77,17 @@ public class database implements java.lang.AutoCloseable {
     public boolean updateSite(Site a, String collection) throws MongoException {
         boolean b = collectionExist(collection);
         if (b) {
-            //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
+            if(a.getUrl()!=null){//to avoid error
+                //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
             Document doc = db.getCollection(collection).findOneAndReplace(new Document("url_site", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
             if (doc == null) {
                 b = false;
             }
+            }
+            else{
+                b=false;
+            }
+            
         }
         else{
             createCollection(collection);
