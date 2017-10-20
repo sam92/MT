@@ -59,6 +59,9 @@ public class executeTest extends Thread {
                     sites.add(it.next().getString("site"));
                 }
             }*/
+            
+            //guarda reanalyze
+            //se in COLLECTION_SITE esiste già quel sito bisogna rimuoverlo da ACTUAL_STATE
             long nrElement=0;
             for(Boolean b:progress.values()){
                 if(!b) nrElement++;

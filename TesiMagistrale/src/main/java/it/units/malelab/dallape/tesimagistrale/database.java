@@ -112,17 +112,17 @@ public class database implements java.lang.AutoCloseable {
     }
 
     public boolean existADocumentWithThisUrlInSITES(String url) {
-        return getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
+        return db.getCollection("SITES").find(new Document("url_site", url)).first()!=null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
     }
 
     public boolean existSiteInSTATE(String site) {
-        return getTheFirstDocumentWithThisKeyValue("site", site, "STATE_LIST_SITES") != null;
+        return db.getCollection("STATE_LIST_SITES").find(new Document("site", site)).first()!=null;//getTheFirstDocumentWithThisKeyValue("site", site, "STATE_LIST_SITES") != null;
     }
 
     //return the first Document with this url or null
-    public Document getTheFirstDocumentWithThisKeyValue(String key, String value, String collection) {
+    /*public Document getTheFirstDocumentWithThisKeyValue(String key, String value, String collection) {
         MongoCollection<Document> docs = db.getCollection(collection);
-        //cosi era meglio db.getCollection(collection).find(new Document(key, value)).first();
+        //db.getCollection(collection).find(new Document(key, value)).first();
         FindIterable<Document> lista = null;
         if (value == null) {
             lista = docs.find();
@@ -142,7 +142,7 @@ public class database implements java.lang.AutoCloseable {
 
         }
         return a;
-    }
+    }*/
 
     public MongoCollection<Document> getDocumentsInThisCollection(String name) throws IllegalArgumentException {
         if(! collectionExist(name)) createCollection(name);
@@ -173,9 +173,9 @@ public class database implements java.lang.AutoCloseable {
         if (!this.collectionExist(collection)) {
             db.createCollection(collection);
         }
-        Document document = db.getCollection(collection).find(new Document("hash", key)).first();
+        Document document = db.getCollection(collection).find(new Document("task_id", key)).first();
         if (document == null) {
-            document = new Document("hash", key).append("value",con.toDocument());
+            document = new Document("task_id", key).append("value",con.toDocument());
             db.getCollection(collection).insertOne(document);
         }
             
@@ -185,13 +185,15 @@ public class database implements java.lang.AutoCloseable {
         if (!this.collectionExist(collection)) {
             db.createCollection(collection);
         }
-        Document document = db.getCollection(collection).find(new Document("hash", key)).first();
+        Document document = db.getCollection(collection).find(new Document("task_id", key)).first();
         if (document == null && insertIfNotExixst) {
-            document = new Document("hash", key).append("value",con.toDocument());
+            document = new Document("task_id", key).append("value",con.toDocument());
             db.getCollection(collection).insertOne(document);
         }
         else{
-            db.getCollection(collection).updateOne(document, new Document("hash", key).append("value",con.toDocument()));
+            //https://stackoverflow.com/questions/29434207/mongodb-update-using-java-3-driver
+            //db.getCollection(collection).updateOne(document, new Document("task_id", key).append("value",con.toDocument()));
+            db.getCollection(collection).findOneAndReplace(document, new Document("task_id", key).append("value",con.toDocument()));
         }
             
     }
@@ -201,7 +203,7 @@ public class database implements java.lang.AutoCloseable {
             db.createCollection(collection);
         }
         Conditions con = null;
-        Document document = db.getCollection(collection).find(new Document("hash", task_id)).first();
+        Document document = db.getCollection(collection).find(new Document("task_id", task_id)).first();
         if (document != null) {
             con=Conditions.fromJSON(((Document) document.get("value")).toJson());
         }
@@ -216,7 +218,7 @@ public class database implements java.lang.AutoCloseable {
         long length = db.getCollection(collection).count();
         List<Document> docs= (List<Document>) db.getCollection(collection).find().sort(new Document("_id",-1));
         for(Document d: docs){
-            lista.add(d.getString("hash"));
+            lista.add(d.getString("task_id"));
         }
         assert(lista.size()==length);
         return lista;
@@ -227,7 +229,7 @@ public class database implements java.lang.AutoCloseable {
             db.createCollection(collection);
         }
         Conditions con = null;
-        Document document = db.getCollection(collection).find(new Document("hash", task_id)).first();
+        Document document = db.getCollection(collection).find(new Document("task_id", task_id)).first();
         if (document != null) {
             // no test document, let's create one!
             con=Conditions.fromJSON(((Document) document.get("value")).toJson());

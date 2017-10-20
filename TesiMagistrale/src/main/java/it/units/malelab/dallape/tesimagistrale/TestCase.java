@@ -12,13 +12,13 @@ import org.openqa.selenium.WebDriver;
  *
  * @author Samuele
  */
-public interface TestCase<T> {
+public interface TestCase {
 
     public void searchFormInThisPattern(List<String> pattern);
     public void searchFormInLinkedPagesOfHomepage();
     public void tryLoginSubmit();
     public List<String> searchForWebmasterContacts();
-    public T getSite();
+    public Site getSite();
     public WebDriver getWebDriver();
     public void setWebDriver(WebDriver wb);
     public void quitWebDriver();

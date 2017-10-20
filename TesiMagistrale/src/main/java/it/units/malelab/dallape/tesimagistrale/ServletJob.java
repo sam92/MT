@@ -52,115 +52,120 @@ public class ServletJob extends HttpServlet {
             action = "";
         }
         String task_id = request.getParameter("task_id");
-        if (task_id == null) {
-            task_id = "";
-        }
-        String COLLECTION_SITES = "SITES";
-        String ACTUAL_STATE = "STATE_LIST_SITES";
-        String TASKID_CONDITIONS = "TASKID_CONDITIONS"; //mappa hash-conditions
+        if ((task_id != null && !task_id.isEmpty()) || action.equals("start")) {
+            if (task_id == null) {
+                task_id = "";
+            }
+            String COLLECTION_SITES = "SITES";
+            String ACTUAL_STATE = "STATE_LIST_SITES";
+            String TASKID_CONDITIONS = "TASKID_CONDITIONS"; //mappa hash-conditions
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
 //fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
-        try (database db = new database()) {
-            //TO DO
-            if (!db.collectionExist(TASKID_CONDITIONS)) {
-                db.createCollection(TASKID_CONDITIONS);
-            }
-            if (!db.collectionExist(ACTUAL_STATE)) {
-                db.createCollection(ACTUAL_STATE);
-            }
+            try (database db = new database()) {
+                //TO DO
+                if (!db.collectionExist(TASKID_CONDITIONS)) {
+                    db.createCollection(TASKID_CONDITIONS);
+                }
+                if (!db.collectionExist(ACTUAL_STATE)) {
+                    db.createCollection(ACTUAL_STATE);
+                }
 
-            switch (action) {
-                case "start":
-                    Conditions con = db.getConditionFromMap(task_id, TASKID_CONDITIONS);
-                    boolean resume = false;
-                    if (con == null) {//start condition non ci sono altri task uguali iniziati
-                        List<String> sitesInInput = new ArrayList<>(Arrays.asList(request.getParameterValues("site")));
-                        List<String> test = new ArrayList<>(Arrays.asList(request.getParameterValues("test")));
-                        boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
-                        List<String> sites = new ArrayList<>();
-                        for (String s : sitesInInput) {
-                            sites.add(s.trim());
-                        }
-                        String phrase = "";
-                        for (int i = 0; i < sites.size(); i++) {
-                            phrase += sites.get(i);
-                        }
-                        task_id = DigestUtils.sha1Hex(phrase);
-                        for (String s : sites) {
-                            if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
-                                //inserisco tutti i sites nella lista dello stato.
-                                db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", task_id));
-                            } else {
-                                System.out.println("Already exist: " + s);
+                switch (action) {
+                    case "start":
+                        Conditions con = db.getConditionFromMap(task_id, TASKID_CONDITIONS);
+                        boolean resume = false;
+                        if (con == null) {//start condition non ci sono altri task uguali iniziati
+                            List<String> sitesInInput = new ArrayList<>(Arrays.asList(request.getParameterValues("site")));
+                            List<String> test = new ArrayList<>(Arrays.asList(request.getParameterValues("test")));
+                            boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
+                            List<String> sites = new ArrayList<>();
+                            for (String s : sitesInInput) {
+                                sites.add(s.trim());
                             }
+                            String phrase = "";
+                            for (int i = 0; i < sites.size(); i++) {
+                                phrase += sites.get(i);
+                            }
+                            task_id = DigestUtils.sha1Hex(phrase);
+                            for (String s : sites) {
+                                if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
+                                    //inserisco tutti i sites nella lista dello stato.
+                                    db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", task_id));
+                                } else {
+                                    System.out.println("Already exist: " + s);
+                                }
+                            }
+                            con = new Conditions(sites, test, reanalyze, COLLECTION_SITES, ACTUAL_STATE);
+                            db.insertValueMap(task_id, con, TASKID_CONDITIONS);
+                            //mapTask.put(task_id, con);
+                        } else if (con.isPaused()) { //resume condition
+                            resume = true;
+                            //con = mapTask.get(task_id);
+                            con.setPaused(false);
+                            db.updateValueMap(task_id, con, TASKID_CONDITIONS, false);
                         }
-                        con = new Conditions(sites, test, reanalyze, COLLECTION_SITES, ACTUAL_STATE);
-                        db.insertValueMap(task_id, con, TASKID_CONDITIONS);
-                        //mapTask.put(task_id, con);
-                    } else if (con.isPaused()) { //resume condition
-                        resume = true;
-                        //con = mapTask.get(task_id);
-                        con.setPaused(false);
-                        db.updateValueMap(task_id, con, TASKID_CONDITIONS, false);
-                    }
-                    Thread t = new executeTest(task_id, con, TASKID_CONDITIONS);
-                    mapThread = (Map<String, Thread>) context.getAttribute("map");
-                    mapThread.put(task_id, t);
-                    context.setAttribute("map", mapThread);
-                    t.start();
-
-                    if (!resume) {
-                        //fare un dispatcher verso il jsp che gestisce la progress bar
-                        //response with progress bar and task_id to stop operations
-                        //fare un dispatcher e mandare indietro task_id
-                        request.setAttribute("task_id", task_id);
-                        request.getRequestDispatcher("progress.jsp").forward(request, response);
-                    }
-
-                    break;
-                case "stop":
-                    //Conditions c = mapTask.remove(task_id);
-                    if (!task_id.isEmpty()) {
-                        Conditions c = db.deleteTaskIDFromMap(task_id, TASKID_CONDITIONS);
+                        Thread t = new executeTest(task_id, con, TASKID_CONDITIONS);
                         mapThread = (Map<String, Thread>) context.getAttribute("map");
-                        if (c != null && mapThread.get(task_id) != null) {
-                            Thread toBeStopped = mapThread.get(task_id);
-                            ((executeTest) toBeStopped).kill();
-                            mapThread.remove(task_id);
-                            context.setAttribute("map", mapThread);
-                            //mappaConditions.remove(hash);
-                            //db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
-                            //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
+                        mapThread.put(task_id, t);
+                        context.setAttribute("map", mapThread);
+                        t.start();
+
+                        if (!resume) {
+                            //fare un dispatcher verso il jsp che gestisce la progress bar
+                            //response with progress bar and task_id to stop operations
+                            //fare un dispatcher e mandare indietro task_id
+                            request.setAttribute("task_id", task_id);
+                            request.getRequestDispatcher("progress.jsp").forward(request, response);
                         }
-                        //sovrascrivere mappa in db
-                    }
-                    request.getRequestDispatcher("stop.html").forward(request, response);
-                    break;
-                case "pause":
-                    //setta nelle conditions come lista di sites quelli che sono rimasti in db
-                    //Conditions condit = mapTask.get(task_id);
-                    if (!task_id.isEmpty()) {
-                        Conditions condit = db.getConditionFromMap(task_id, TASKID_CONDITIONS);
-                        mapThread = (Map<String, Thread>) context.getAttribute("map");
-                        if (condit != null && mapThread.get(task_id) != null) {
-                            Thread toBePaused = mapThread.get(task_id);
-                            ((executeTest) toBePaused).pause();
-                            condit.setPaused(true);
-                            db.updateValueMap(task_id, condit, TASKID_CONDITIONS,false);
-                            mapThread.remove(task_id);
-                            context.setAttribute("map", mapThread);
+
+                        break;
+                    case "stop":
+                        //Conditions c = mapTask.remove(task_id);
+                        if (!task_id.isEmpty()) {
+                            Conditions c = db.deleteTaskIDFromMap(task_id, TASKID_CONDITIONS);
+                            mapThread = (Map<String, Thread>) context.getAttribute("map");
+                            if (c != null && mapThread.get(task_id) != null) {
+                                Thread toBeStopped = mapThread.get(task_id);
+                                ((executeTest) toBeStopped).kill();
+                                mapThread.remove(task_id);
+                                context.setAttribute("map", mapThread);
+                                //mappaConditions.remove(hash);
+                                //db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
+                                //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
+                            }
+                            //sovrascrivere mappa in db
                         }
-                        //sovrascrivere la mappa in db
-                    }
-                    break;
-                default: //dispatcher 404
-                    break;
+                        request.getRequestDispatcher("stop.html").forward(request, response);
+                        break;
+                    case "pause":
+                        //setta nelle conditions come lista di sites quelli che sono rimasti in db
+                        //Conditions condit = mapTask.get(task_id);
+                        if (!task_id.isEmpty()) {
+                            Conditions condit = db.getConditionFromMap(task_id, TASKID_CONDITIONS);
+                            mapThread = (Map<String, Thread>) context.getAttribute("map");
+                            if (condit != null && mapThread.get(task_id) != null) {
+                                Thread toBePaused = mapThread.get(task_id);
+                                ((executeTest) toBePaused).pause();
+                                condit.setPaused(true);
+                                db.updateValueMap(task_id, condit, TASKID_CONDITIONS, false);
+                                mapThread.remove(task_id);
+                                context.setAttribute("map", mapThread);
+                            }
+                            //sovrascrivere la mappa in db
+                        }
+                        break;
+                    default: //dispatcher 404
+                        break;
+                }
+
+            } catch (IllegalArgumentException | MongoException e) {
+                System.out.println(e.getMessage());
+                //throw new RuntimeException(e);
             }
-
-        } catch (IllegalArgumentException | MongoException e) {
-            System.out.println(e.getMessage());
-            //throw new RuntimeException(e);
+        }
+        else{
+        request.getRequestDispatcher("error.html").forward(request, response);
         }
     }
 

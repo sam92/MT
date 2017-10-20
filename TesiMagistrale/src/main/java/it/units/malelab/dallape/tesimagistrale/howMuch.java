@@ -5,16 +5,13 @@
  */
 package it.units.malelab.dallape.tesimagistrale;
 
-import com.mongodb.MongoException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Map;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.json.JSONObject;
 
 /**
  *
@@ -34,11 +31,12 @@ public class howMuch extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/event-stream");
+        response.setHeader("Cache-Control", "no-cache");
         response.setCharacterEncoding("UTF-8");
-        String task_id = request.getParameter("hash");
-        ServletContext context = getServletContext();
-        Map<String, Conditions> mapTask = (Map<String, Conditions>) context.getAttribute("map");
-        Conditions c = mapTask.get(task_id);
+        String task_id = request.getParameter("task_id");
+        System.out.println("REQUEST ARRIVED");
+        try(database db=new database(); PrintWriter writer = response.getWriter();){
+            Conditions c = db.getConditionFromMap(task_id, "TASKID_CONDITIONS");
         if (c != null) {
             int total = c.getSites().size();
             int alreadyscan = c.getNrAlreadyScan();
@@ -46,9 +44,8 @@ public class howMuch extends HttpServlet {
                 if (alreadyscan != c.getNrAlreadyScan()) {
                     alreadyscan = c.getNrAlreadyScan();
                     StringBuilder data = new StringBuilder(128);
-                    data.append("{\"current\":").append("\""+c.getCurrent()+"\"").append(",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
+                    data.append("{\"current\":\"").append(c.getCurrent()).append("\",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
                     System.out.println("DATA: " + data);
-                    PrintWriter writer = response.getWriter();
                     // write the event type (make sure to include the double newline)
                     writer.write("event: " + "status" + "\n\n");
                     // write the actual data
@@ -57,19 +54,17 @@ public class howMuch extends HttpServlet {
                     writer.write("data: " + data.toString() + "\n\n");
                     // flush the buffers to make sure the container sends the bytes
                     writer.flush();
-                    response.flushBuffer();
                     //writeEvent(response, "status", data.toString());
                 }
             }
-            PrintWriter writer = response.getWriter();
                     writer.write("event: " + "status" + "\n\n");
                     writer.write("data: " + "{\"complete\":true}" + "\n\n");
                     writer.flush();
                     response.flushBuffer();
             //writeEvent(response, "status", "{\"complete\":true}");
         }
+        }  
     }
-
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
      * Handles the HTTP <code>GET</code> method.

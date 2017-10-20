@@ -609,7 +609,7 @@ public class TestCaseImplementation implements TestCase {
         nameLogin.add("Sign in");
         nameLogin.add("Log in");
         nameLogin.add("Signin");
-        nameLogin.add("Area Riservata");
+        nameLogin.add("riservata");
         nameLogin.add("sign");
         nameLogin.add("signin");
         return nameLogin;
