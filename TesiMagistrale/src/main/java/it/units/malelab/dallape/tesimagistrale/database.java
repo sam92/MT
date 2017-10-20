@@ -207,6 +207,20 @@ public class database implements java.lang.AutoCloseable {
         }
         return con;
     }
+    
+    public List<String> getTasksIDFromMap(String collection) {
+        if (!this.collectionExist(collection)) {
+            db.createCollection(collection);
+        }
+        List<String> lista=new ArrayList<>();
+        long length = db.getCollection(collection).count();
+        List<Document> docs= (List<Document>) db.getCollection(collection).find().sort(new Document("_id",-1));
+        for(Document d: docs){
+            lista.add(d.getString("hash"));
+        }
+        assert(lista.size()==length);
+        return lista;
+    }
 
     public Conditions deleteTaskIDFromMap(String task_id, String collection) {
         if (!this.collectionExist(collection)) {
