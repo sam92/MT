@@ -28,45 +28,33 @@ public class SiteImplementation implements Site {
     private Timestamp timestamp;
     private final List<String[]> result;
     private String TASK_ID;
+    private List<String> scanned;
 
     public SiteImplementation(String url) throws AssertionError {
         assert !url.trim().isEmpty();
-        if (!url.startsWith("http")) {
-            url = "http://" + url;
-        }
-        if (url.endsWith("/")) {
-            url = url.substring(0, url.length() - 1);
-        }
+        url=sanitization(url, true);
         this.url = url;
         result = new ArrayList<>();
         TASK_ID = "";
         visited = false;
+        scanned=new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
     }
 
     public SiteImplementation(String url, String taskID) throws AssertionError {
         assert !url.trim().isEmpty();
-        if (!url.startsWith("http")) {
-            url = "http://" + url;
-        }
-        if (url.endsWith("/")) {
-            url = url.substring(0, url.length() - 1);
-        }
+        url=sanitization(url, true);
         this.url = url;
         result = new ArrayList<>();
         TASK_ID = taskID;
         visited = false;
+        scanned=new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
     }
 
     @Override
     public void setRealUrl(String url_visited) {
-        if (url_visited.endsWith("/")) {
-            url_visited = url_visited.substring(0, url_visited.length() - 1);
-        }
-        if (!url_visited.startsWith("http")) {
-            url_visited = "http://" + url_visited;
-        }
+        url_visited=sanitization(url_visited, true);
         url_after_get = url_visited;
     }
 
@@ -107,7 +95,7 @@ public class SiteImplementation implements Site {
         return result;
     }
 
-    public int whereIsThisValueInsideResult(String urlpage) {
+    /*public int whereIsThisValueInsideResult(String urlpage) {
         int res = -1;
         for (int i = 0; i < result.size(); i++) {
             if (result.get(i)[0].equalsIgnoreCase(urlpage)) {
@@ -116,7 +104,7 @@ public class SiteImplementation implements Site {
         }
         return res;
     }
-
+*/
     @Override
     public String getUrl() {
         return url;
@@ -138,10 +126,13 @@ public class SiteImplementation implements Site {
     }
 
     public void insertIntoResultValues(String location_form, String action, String link_click) {
+        location_form=sanitization(location_form, false);
+        action=sanitization(action, false);
+        link_click=sanitization(link_click, false);
         String[] l = new String[3];
-        l[0] = location_form.trim();
-        l[1] = action.trim();
-        l[2] = link_click.trim();
+        l[0] = location_form;
+        l[1] = action;
+        l[2] = link_click;
         insertIntoResult(l);
     }
 
@@ -149,15 +140,9 @@ public class SiteImplementation implements Site {
         assert terna.length == 3;
         boolean alreadyExist = false;
         if (!(terna[0].trim().isEmpty() && terna[1].trim().isEmpty() && terna[2].trim().isEmpty())) {
-            if (terna[0].endsWith("/")) {
-                terna[0] = terna[0].substring(0, terna[0].length() - 1);
-            }
-            if (terna[1].endsWith("/")) {
-                terna[1] = terna[1].substring(0, terna[1].length() - 1);
-            }
-            if (terna[2].endsWith("/")) {
-                terna[2] = terna[2].substring(0, terna[2].length() - 1);
-            }
+            for(String a : terna){
+            a=sanitization(a, false);
+        }
             for (String[] t : result) {
                 if (t[0].equalsIgnoreCase(terna[0]) && t[1].equalsIgnoreCase(terna[1]) && t[2].equalsIgnoreCase(terna[2])) {
                     alreadyExist = true;
@@ -168,7 +153,38 @@ public class SiteImplementation implements Site {
             }
         }
     }
-
+    
+    public boolean existIntoResult(String[] terna){
+        assert terna.length == 3;
+        boolean exist = false;
+        for(String a : terna){
+            a=sanitization(a, false);
+        }
+        for(String[] current : result){
+            if(current[0].equalsIgnoreCase(terna[0]) && current[1].equalsIgnoreCase(terna[1]) &&current[2].equalsIgnoreCase(terna[2])) exist=true;
+        }
+        return exist;
+    }
+    
+        public boolean alreadyFindInUrlOrFormLocation(String value){
+        boolean exist = false;
+        value=sanitization(value, false);
+        for(String[] current : result){
+            if(current[0].equalsIgnoreCase(value) || current[1].equalsIgnoreCase(value) || current[2].equalsIgnoreCase(value)) exist=true;
+        }
+        return exist;
+    }
+    public List<String> getUrlScanned(){
+        return scanned;
+    }
+    public boolean isAlreadyScanned(String value){
+        value=sanitization(value, false);
+        return scanned.contains(value);
+    }
+    public void setScanned(String value){
+        value=sanitization(value, false);
+        if(!scanned.contains(value)) scanned.add(value);
+    }
     public JSONObject toJSON() {
         JSONObject json = new JSONObject();
         List<JSONObject> list = new ArrayList<>();
@@ -233,7 +249,9 @@ public class SiteImplementation implements Site {
             Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
             HttpURLConnection.setFollowRedirects(true);
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            reachable = connection.getResponseCode() >= 200 && connection.getResponseCode() < 400;
+            connection.setConnectTimeout(30000);
+            connection.connect();
+            reachable = connection.getResponseCode() >= 200 && connection.getResponseCode() < 500 && connection.getResponseCode()!=404;
         } catch (IOException ex) {
             System.out.println(ex.getMessage());
         }
@@ -250,5 +268,17 @@ public class SiteImplementation implements Site {
         Document doc=new Document("url_site", url).append("url_site_true", url_after_get).append("task_id",TASK_ID).append("visited", visited).append("timestamp", timestamp.toString()).append("result",list);
         //Document doc = new Document("$push", new Document("result", new Document("timestamp", timestamp).append("url_finded", new JSONArray(list))));
         return doc;
+    }
+    public static String sanitization(String value, boolean isUrl){
+        if (value.trim().endsWith("/")) {
+            value = value.trim().substring(0, value.trim().length() - 1);
+        }
+        if(isUrl){
+            if (!value.trim().startsWith("http")) {
+            value = "http://" + value.trim();
+        }
+        }
+        //if value passed is a whitespace
+        return value.trim();
     }
 }
