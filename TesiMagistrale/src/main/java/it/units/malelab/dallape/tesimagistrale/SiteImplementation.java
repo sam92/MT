@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
@@ -195,23 +196,37 @@ public class SiteImplementation implements Site {
             w.put("location_form", current[0]);
             list.add(w);
         }
-        json.put("url_site", url);
-        json.put("url_site_true", url_after_get);
-        json.put("task_id",TASK_ID);
+        if(url!=null) json.put("url_site", url);
+        if(url_after_get!=null) json.put("url_site_true", url_after_get);
+        if(TASK_ID!=null) json.put("task_id",TASK_ID);
         json.put("visited", visited);
-        json.put("timestamp", timestamp.toString());
+        if(timestamp!=null) json.put("timestamp", timestamp.toString());
         json.put("result", new JSONArray(list));
         return json;
     }
 
     public static SiteImplementation fromJSON(JSONObject json) {
-        SiteImplementation site = new SiteImplementation(json.getString("url_site"));
-        site.setVisited(json.getBoolean("visited"));
+        SiteImplementation site= new SiteImplementation(json.getString("url_site"));
+        try{
+            site.setVisited(json.getBoolean("visited"));
+        }
+        catch(JSONException e){
+            site.setVisited(false);
+        }
+        try{
         site.setRealUrl(json.getString("url_site_true"));
+        }
+        catch(JSONException e){
+            site.setRealUrl("");
+        }
+        try{
         site.setTimestamp(Timestamp.valueOf(json.getString("timestamp")));
         site.setTASKID(json.getString("task_id"));
+        }
+        catch(JSONException e){
+            System.out.println(e.getMessage());
+        }
         JSONArray result = json.getJSONArray("result");
-
         for (int i = 0; i < result.length(); i++) {
             if (!result.isNull(i)) {
                 String[] a = (String[]) result.get(i);
@@ -242,9 +257,7 @@ public class SiteImplementation implements Site {
     public static boolean isReachable(String url) {
         boolean reachable = false;
         try {
-            if (!url.startsWith("http")) {
-                url = "http://" + url;
-            }
+            url=sanitization(url, true);
             System.setProperty("java.protocol.handler.pkgs", "com.sun.net.ssl.internal.www.protocol");
             Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
             HttpURLConnection.setFollowRedirects(true);
