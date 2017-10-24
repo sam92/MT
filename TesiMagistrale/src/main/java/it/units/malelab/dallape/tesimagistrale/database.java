@@ -11,13 +11,12 @@ package it.units.malelab.dallape.tesimagistrale;
  */
 import com.mongodb.*;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
+import org.json.JSONObject;
 
 /**
  *
@@ -25,7 +24,7 @@ import org.bson.Document;
  */
 public class database implements java.lang.AutoCloseable {
 
-    private final String URI_MONGOLAB = "mongodb://shazu:Z6nEiQta8KhqM6!OM1v&76t@ds157233.mlab.com:57233/thesis";
+    private final String URI_MONGOLAB = "mongodb://shazu:Z6nEiQta8KhqM6!OM1v&76t@ds231315.mlab.com:31315/thesis";
     private MongoDatabase db;
     private MongoClient mC;
     private final String COLLECTION_SITES = "SITES";
@@ -37,21 +36,13 @@ public class database implements java.lang.AutoCloseable {
         mC = new MongoClient(dbURI);
         db = mC.getDatabase(dbURI.getDatabase());
         System.out.println("Connected to:" + db.getName());
-        /*Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        DriverManager.registerDriver(new org.apache.derby.jdbc.EmbeddedDriver());
-        //c = DriverManager.getConnection("jdbc:derby://localhost:1527/sample/APP");
-        c = DriverManager.getConnection("jdbc:derby:samples; create=true");
-         */
     }
 
     public boolean collectionExist(String nameCollection) {
         boolean exist = false;
-        MongoIterable<String> collectionNames = db.listCollectionNames();
-        MongoCursor<String> it = collectionNames.iterator();
-        while (it.hasNext()) {
-            if (it.next().equalsIgnoreCase(nameCollection)) {
-                exist = true;
-            }
+        List<String> lista=db.listCollectionNames().into(new ArrayList<String>());
+        for(String s : lista){
+            if(s.equalsIgnoreCase(nameCollection)) exist=true;
         }
         return exist;
     }
@@ -77,27 +68,22 @@ public class database implements java.lang.AutoCloseable {
     }
 
     public boolean updateSitesCollection(Site a) throws MongoException {
-        boolean b = collectionExist(COLLECTION_SITES);
-        if (b) {
+        boolean b = true;
             if(a.getUrl()!=null){//to avoid error
                 //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
             Document doc = db.getCollection(COLLECTION_SITES).findOneAndReplace(new Document("url_site", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
-            if (doc == null) {
+            /*if (doc == null) {
                 b = false;
-            }
+            }*/ //se non c'è lo inserisco e quindi doc==null potrebbe essere che viene inserito lo stesso
             }
             else{
                 b=false;
             }
-            
-        }
-        else{
-            createCollection(COLLECTION_SITES);
-        }
         return b;
     }
 
-    public boolean insertListSites(List<Site> sites, String collection) throws MongoException {
+
+    /*public boolean insertListSites(List<Site> sites, String collection) throws MongoException {
 
         boolean b = collectionExist(collection);
         if (b) {
@@ -111,10 +97,10 @@ public class database implements java.lang.AutoCloseable {
             createCollection(collection);
         }
         return b;
-    }
+    }*/
 
     public boolean existInSitesCollections(String url) {
-        return db.getCollection(COLLECTION_SITES).find(new Document("url_site", url)).first()!=null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
+        return db.getCollection(COLLECTION_SITES).find(new Document("url_site", url.trim())).first()!=null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
     }
 
     public boolean existInSTATE(String site) {
@@ -145,9 +131,12 @@ public class database implements java.lang.AutoCloseable {
         }
         return a;
     }*/
-
+    public Site getFromCollectionsSites(String name){
+        return SiteImplementation.fromDocument(db.getCollection(COLLECTION_SITES).find(new Document("url_site",name)).first());
+    }
+    
     public MongoCollection<Document> getDocumentsInThisCollection(String name) throws IllegalArgumentException {
-        if(! collectionExist(name)) createCollection(name);
+        //if(! collectionExist(name)) createCollection(name);
         return db.getCollection(name);
     }
 
