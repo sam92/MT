@@ -33,29 +33,29 @@ public class SiteImplementation implements Site {
 
     public SiteImplementation(String url) throws AssertionError {
         assert !url.trim().isEmpty();
-        url=sanitization(url, true);
+        url = sanitization(url, true);
         this.url = url;
         result = new ArrayList<>();
         TASK_ID = "";
         visited = false;
-        scanned=new ArrayList<>();
+        scanned = new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
     }
 
     public SiteImplementation(String url, String taskID) throws AssertionError {
         assert !url.trim().isEmpty();
-        url=sanitization(url, true);
+        url = sanitization(url, true);
         this.url = url;
         result = new ArrayList<>();
         TASK_ID = taskID;
         visited = false;
-        scanned=new ArrayList<>();
+        scanned = new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
     }
 
     @Override
     public void setRealUrl(String url_visited) {
-        url_visited=sanitization(url_visited, true);
+        url_visited = sanitization(url_visited, true);
         url_after_get = url_visited;
     }
 
@@ -105,7 +105,7 @@ public class SiteImplementation implements Site {
         }
         return res;
     }
-*/
+     */
     @Override
     public String getUrl() {
         return url;
@@ -127,9 +127,9 @@ public class SiteImplementation implements Site {
     }
 
     public void insertIntoResultValues(String location_form, String action, String link_click) {
-        location_form=sanitization(location_form, false);
-        action=sanitization(action, false);
-        link_click=sanitization(link_click, false);
+        location_form = sanitization(location_form, false);
+        action = sanitization(action, false);
+        link_click = sanitization(link_click, false);
         String[] l = new String[3];
         l[0] = location_form;
         l[1] = action;
@@ -141,9 +141,9 @@ public class SiteImplementation implements Site {
         assert terna.length == 3;
         boolean alreadyExist = false;
         if (!(terna[0].trim().isEmpty() && terna[1].trim().isEmpty() && terna[2].trim().isEmpty())) {
-            for(String a : terna){
-            a=sanitization(a, false);
-        }
+            for (String a : terna) {
+                a = sanitization(a, false);
+            }
             for (String[] t : result) {
                 if (t[0].equalsIgnoreCase(terna[0]) && t[1].equalsIgnoreCase(terna[1]) && t[2].equalsIgnoreCase(terna[2])) {
                     alreadyExist = true;
@@ -154,38 +154,48 @@ public class SiteImplementation implements Site {
             }
         }
     }
-    
-    public boolean existIntoResult(String[] terna){
+
+    public boolean existIntoResult(String[] terna) {
         assert terna.length == 3;
         boolean exist = false;
-        for(String a : terna){
-            a=sanitization(a, false);
+        for (String a : terna) {
+            a = sanitization(a, false);
         }
-        for(String[] current : result){
-            if(current[0].equalsIgnoreCase(terna[0]) && current[1].equalsIgnoreCase(terna[1]) &&current[2].equalsIgnoreCase(terna[2])) exist=true;
+        for (String[] current : result) {
+            if (current[0].equalsIgnoreCase(terna[0]) && current[1].equalsIgnoreCase(terna[1]) && current[2].equalsIgnoreCase(terna[2])) {
+                exist = true;
+            }
         }
         return exist;
     }
-    
-        public boolean alreadyFindInUrlOrFormLocation(String value){
+
+    public boolean alreadyFindInUrlOrFormLocation(String value) {
         boolean exist = false;
-        value=sanitization(value, false);
-        for(String[] current : result){
-            if(current[0].equalsIgnoreCase(value) || current[1].equalsIgnoreCase(value) || current[2].equalsIgnoreCase(value)) exist=true;
+        value = sanitization(value, false);
+        for (String[] current : result) {
+            if (current[0].equalsIgnoreCase(value) || current[1].equalsIgnoreCase(value) || current[2].equalsIgnoreCase(value)) {
+                exist = true;
+            }
         }
         return exist;
     }
-    public List<String> getUrlScanned(){
+
+    public List<String> getUrlScanned() {
         return scanned;
     }
-    public boolean isAlreadyScanned(String value){
-        value=sanitization(value, false);
+
+    public boolean isAlreadyScanned(String value) {
+        value = sanitization(value, false);
         return scanned.contains(value);
     }
-    public void setScanned(String value){
-        value=sanitization(value, false);
-        if(!scanned.contains(value)) scanned.add(value);
+
+    public void setScanned(String value) {
+        value = sanitization(value, false);
+        if (!scanned.contains(value)) {
+            scanned.add(value);
+        }
     }
+
     public JSONObject toJSON() {
         JSONObject json = new JSONObject();
         List<JSONObject> list = new ArrayList<>();
@@ -196,34 +206,39 @@ public class SiteImplementation implements Site {
             w.put("location_form", current[0]);
             list.add(w);
         }
-        if(url!=null) json.put("url_site", url);
-        if(url_after_get!=null) json.put("url_site_true", url_after_get);
-        if(TASK_ID!=null) json.put("task_id",TASK_ID);
+        if (url != null) {
+            json.put("url_site", url);
+        }
+        if (url_after_get != null) {
+            json.put("url_site_true", url_after_get);
+        }
+        if (TASK_ID != null) {
+            json.put("task_id", TASK_ID);
+        }
         json.put("visited", visited);
-        if(timestamp!=null) json.put("timestamp", timestamp.toString());
+        if (timestamp != null) {
+            json.put("timestamp", timestamp.toString());
+        }
         json.put("result", new JSONArray(list));
         return json;
     }
 
     public static SiteImplementation fromJSON(JSONObject json) {
-        SiteImplementation site= new SiteImplementation(json.getString("url_site"));
-        try{
+        SiteImplementation site = new SiteImplementation(json.getString("url_site"));
+        try {
             site.setVisited(json.getBoolean("visited"));
-        }
-        catch(JSONException e){
+        } catch (JSONException e) {
             site.setVisited(false);
         }
-        try{
-        site.setRealUrl(json.getString("url_site_true"));
-        }
-        catch(JSONException e){
+        try {
+            site.setRealUrl(json.getString("url_site_true"));
+        } catch (JSONException e) {
             site.setRealUrl("");
         }
-        try{
-        site.setTimestamp(Timestamp.valueOf(json.getString("timestamp")));
-        site.setTASKID(json.getString("task_id"));
-        }
-        catch(JSONException e){
+        try {
+            site.setTimestamp(Timestamp.valueOf(json.getString("timestamp")));
+            site.setTASKID(json.getString("task_id"));
+        } catch (JSONException e) {
             System.out.println(e.getMessage());
         }
         JSONArray result = json.getJSONArray("result");
@@ -249,22 +264,23 @@ public class SiteImplementation implements Site {
         }
         return a;
     }
+
     @Override
-    public boolean isUnreachable(){
+    public boolean isUnreachable() {
         return "Unreachable".equals(url_after_get);
     }
 
     public static boolean isReachable(String url) {
         boolean reachable = false;
         try {
-            url=sanitization(url, true);
+            url = sanitization(url, true);
             System.setProperty("java.protocol.handler.pkgs", "com.sun.net.ssl.internal.www.protocol");
             Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
             HttpURLConnection.setFollowRedirects(true);
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setConnectTimeout(30000);
             connection.connect();
-            reachable = connection.getResponseCode() >= 200 && connection.getResponseCode() < 500 && connection.getResponseCode()!=404;
+            reachable = connection.getResponseCode() >= 200 && connection.getResponseCode() < 500 && connection.getResponseCode() != 404;
         } catch (IOException ex) {
             System.out.println(ex.getMessage());
         }
@@ -277,19 +293,48 @@ public class SiteImplementation implements Site {
         for (String[] current : result) {
             Document w = new Document().append("link_click", current[2]).append("action", current[1]).append("location_form", current[0]);
             list.add(w);
-        }      
-        Document doc=new Document("url_site", url).append("url_site_true", url_after_get).append("task_id",TASK_ID).append("visited", visited).append("timestamp", timestamp.toString()).append("result",list);
+        }
+        Document doc = new Document("url_site", url).append("url_site_true", url_after_get).append("task_id", TASK_ID).append("visited", visited).append("timestamp", timestamp.toString()).append("result", list);
         //Document doc = new Document("$push", new Document("result", new Document("timestamp", timestamp).append("url_finded", new JSONArray(list))));
         return doc;
     }
-    public static String sanitization(String value, boolean isUrl){
+
+    public static Site fromDocument(Document d) {
+        Site s = new SiteImplementation(d.getString("url_site"));
+        if (d.getString("url_site_true") != null) {
+            s.setRealUrl(d.getString("url_site_true"));
+        }
+        if (d.getString("task_id") != null) {
+            s.setTASKID(d.getString("task_id"));
+        }
+        if (d.getString("visited") != null) {
+            s.setVisited(d.getBoolean("visited"));
+        }
+        if (d.getString("timestamp") != null) {
+            s.setTimestamp(Timestamp.valueOf(d.getString("timestamp")));
+        }
+        if (d.getString("result") != null) {
+            List<Document> result1 = (List<Document>) d.get("result");
+            String[] current = new String[3];
+            for (Document doc : result1) {
+                current[0] = doc.getString("location_form");
+                current[1] = doc.getString("action");
+                current[2] = doc.getString("link_click");
+                ((SiteImplementation) s).insertIntoResult(current);
+            }
+        }
+
+        return s;
+    }
+
+    public static String sanitization(String value, boolean isUrl) {
         if (value.trim().endsWith("/")) {
             value = value.trim().substring(0, value.trim().length() - 1);
         }
-        if(isUrl){
+        if (isUrl) {
             if (!value.trim().startsWith("http")) {
-            value = "http://" + value.trim();
-        }
+                value = "http://" + value.trim();
+            }
         }
         //if value passed is a whitespace
         return value.trim();
