@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -56,13 +58,12 @@ public class ServletJob extends HttpServlet {
             if (task_id == null) {
                 task_id = "";
             }
-            
+
             String COLLECTION_SITES = "SITES";
             String ACTUAL_STATE = "STATE_LIST_SITES";
             String TASKID_CONDITIONS = "TASKID_CONDITIONS"; //mappa hash-conditions
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
-
             try (database db = new database()) {
                 //TO DO
                 if (!db.collectionExist(TASKID_CONDITIONS)) {
@@ -71,7 +72,10 @@ public class ServletJob extends HttpServlet {
                 if (!db.collectionExist(ACTUAL_STATE)) {
                     db.createCollection(ACTUAL_STATE);
                 }
-
+                if (!db.collectionExist(COLLECTION_SITES)) {
+                    db.createCollection(COLLECTION_SITES);
+                }
+//SE C'E ROBA NELLO STATO MA NON ESISTE IL CORRISPONDENTE TASK ID IN TASKID-CONDITION RIMUOVI TUTTO DALLO STATO
                 switch (action) {
                     case "start":
                         Conditions con = db.getConditionFromMap(task_id, TASKID_CONDITIONS);
@@ -81,8 +85,12 @@ public class ServletJob extends HttpServlet {
                             List<String> test = new ArrayList<>(Arrays.asList(request.getParameterValues("test")));
                             boolean reanalyze = Boolean.valueOf(request.getParameter("reanalyze"));
                             List<String> sites = new ArrayList<>();
+                            Pattern pattern = Pattern.compile("^(https?:\\/\\/)?(www\\.)?([\\w]+\\.)+[‌​\\w]{2,63}\\/?\\S+$");
                             for (String s : sitesInInput) {
-                                sites.add(s.trim());
+                                if (!s.trim().isEmpty()) {
+                                    Matcher m = pattern.matcher(s.trim());
+                                    if(m.matches()) sites.add(SiteImplementation.sanitization(s, true));
+                                }
                             }
                             String phrase = "";
                             for (int i = 0; i < sites.size(); i++) {
@@ -97,6 +105,9 @@ public class ServletJob extends HttpServlet {
                             //con = mapTask.get(task_id);
                             con.setPaused(false);
                             db.updateValueMap(task_id, con, TASKID_CONDITIONS, false);
+                        } else {
+                            //is already started and someone has ask the same, i.e. refreshing the page
+                            break;
                         }
                         Thread t = new executeTest(task_id, con, TASKID_CONDITIONS);
                         mapThread = (Map<String, Thread>) context.getAttribute("map");
@@ -156,9 +167,8 @@ public class ServletJob extends HttpServlet {
                 System.out.println(e.getMessage());
                 //throw new RuntimeException(e);
             }
-        }
-        else{
-        request.getRequestDispatcher("error.html").forward(request, response);
+        } else {
+            request.getRequestDispatcher("error.html").forward(request, response);
         }
     }
 
