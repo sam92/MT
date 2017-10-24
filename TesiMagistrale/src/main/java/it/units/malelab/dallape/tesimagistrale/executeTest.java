@@ -43,13 +43,9 @@ public class executeTest extends Thread {
     @Override
     public void run() {
         try (database db = new database()) {
-            if (!db.collectionExist(COLLECTION_SITES)) {
-                db.createCollection(COLLECTION_SITES);
-            }
-            if (!db.collectionExist(ACTUAL_STATE)) {
-                db.createCollection(ACTUAL_STATE);
-            }
             for (String s : progress.keySet()) {
+                System.out.println("For "+s+" : "+(!db.existInSitesCollections(s)));
+                System.out.println("For "+s+" : "+reanalyze);
                 if (!db.existInSitesCollections(s) || reanalyze) {
                     if (!db.existInSTATE(s) && !s.isEmpty()) {
                         //inserisco tutti i sites nella lista dello stato.
@@ -125,6 +121,12 @@ public class executeTest extends Thread {
                                 }
                             }
                         }
+                        else if(db.existInSitesCollections(s) && !reanalyze){
+                            Site alreadyExistent= db.getFromCollectionsSites(s);
+                            alreadyExistent.setTASKID(task_id);
+                            alreadyExistent.setVisitedNow();
+                            db.updateSitesCollection(alreadyExistent);
+                        }
                         progress.replace(s, false, true);
                         db.updateValueMap(task_id, con, stato, false);
 
@@ -132,7 +134,7 @@ public class executeTest extends Thread {
                 }
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
                         db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
-                        System.out.println("Cancello " + s);
+                        //System.out.println("Cancello " + s);
             }
             if (!con.isPaused()) {
                 //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
