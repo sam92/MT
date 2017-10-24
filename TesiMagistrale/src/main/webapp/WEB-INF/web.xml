@@ -8,6 +8,10 @@
         <servlet-name>howMuch</servlet-name>
         <servlet-class>it.units.malelab.dallape.tesimagistrale.howMuch</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>mapTasks</servlet-name>
+        <servlet-class>it.units.malelab.dallape.tesimagistrale.mapTasks</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>ServletJob</servlet-name>
         <url-pattern>/doJob</url-pattern>
@@ -15,6 +19,10 @@
     <servlet-mapping>
         <servlet-name>howMuch</servlet-name>
         <url-pattern>/howMuch</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>mapTasks</servlet-name>
+        <url-pattern>/getTasks</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

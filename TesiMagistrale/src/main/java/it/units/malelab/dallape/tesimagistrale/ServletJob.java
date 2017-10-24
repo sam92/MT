@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.bson.Document;
 
 /*
 idea fare un hashmap generica che contiene il taskid
@@ -53,15 +52,17 @@ public class ServletJob extends HttpServlet {
         }
         String task_id = request.getParameter("task_id");
         if ((task_id != null && !task_id.isEmpty()) || action.equals("start")) {
+            //si entra nel processo solo se viene inviato un task_id o in alternativa se la condizione è START
             if (task_id == null) {
                 task_id = "";
             }
+            
             String COLLECTION_SITES = "SITES";
             String ACTUAL_STATE = "STATE_LIST_SITES";
             String TASKID_CONDITIONS = "TASKID_CONDITIONS"; //mappa hash-conditions
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
-//fare una maps e mettere hash e task_id e salvarla in db, dopo tirare su quella per capire che task sono in sospeso
+
             try (database db = new database()) {
                 //TO DO
                 if (!db.collectionExist(TASKID_CONDITIONS)) {
@@ -88,14 +89,6 @@ public class ServletJob extends HttpServlet {
                                 phrase += sites.get(i);
                             }
                             task_id = DigestUtils.sha1Hex(phrase);
-                            for (String s : sites) {
-                                if (!db.existSiteInSTATE(s) && !s.trim().isEmpty()) {
-                                    //inserisco tutti i sites nella lista dello stato.
-                                    db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", task_id));
-                                } else {
-                                    System.out.println("Already exist: " + s);
-                                }
-                            }
                             con = new Conditions(sites, test, reanalyze, COLLECTION_SITES, ACTUAL_STATE);
                             db.insertValueMap(task_id, con, TASKID_CONDITIONS);
                             //mapTask.put(task_id, con);

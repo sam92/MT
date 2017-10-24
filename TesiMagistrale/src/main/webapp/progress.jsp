@@ -105,26 +105,27 @@
     </style>
     </head>
     <body>
-        <h1>Hello World!</h1>
-        <a href="#" onclick="startTask(); return false;">Start Long Task</a><br /><br />
+        <h1 >Hello World!</h1>
+        <!--<a href="#" onclick="startTask(); return false;">Start Long Task</a><br /><br />-->
 
     <!-- Progress bar adapted from http://www.catswhocode.com/blog/how-to-create-a-kick-ass-css3-progress-bar -->
     <div class="progress">            
         <div class="ui-progress-bar ui-container transition" id="progress_bar">
-            <div id="progress" class="ui-progress" style="width: 0%;">
+            <div id="progress" class="ui-progress" style="width: 1%;">
                 <span id="label" class="ui-label"></span>
             </div>
         </div>
     </div>
     <script type="text/javascript">
-        function startTask() {
+
             /* create the event source */
-            var source = new EventSource('/TesiMagistrale/howMuch?hash=${requestScope.hash}');
+            var source = new EventSource('/TesiMagistrale/howMuch?task_id=${requestScope.task_id}');
             /* handle incoming messages */
             source.onmessage = function(event) {
-                if (event.type == 'message') {
+                if (event.type === 'message') {
                     // data expected to be in JSON-format, so parse */
                     var data = JSON.parse(event.data);
+                    console.log(JSON.parse(event.data));
                     // server sends complete:true on completion
                     if (data.complete) {
                         // close the connection so browser does not keep connecting
@@ -142,9 +143,9 @@
                 }
             };
             source.onerror = function(event) {
-                console.log('Failed to Start EventSource: ', event);
+                console.log('Failed to Start EventSource: ', source.readystate);
             };
-        }
+ 
     </script>
     </body>
 </html>

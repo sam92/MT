@@ -40,6 +40,7 @@ public class howMuch extends HttpServlet {
         if (c != null) {
             int total = c.getSites().size();
             int alreadyscan = c.getNrAlreadyScan();
+            System.out.println("fatti :"+alreadyscan + " su "+total);
             while (total != alreadyscan) {
                 if (alreadyscan != c.getNrAlreadyScan()) {
                     alreadyscan = c.getNrAlreadyScan();
@@ -60,8 +61,11 @@ public class howMuch extends HttpServlet {
                     writer.write("event: " + "status" + "\n\n");
                     writer.write("data: " + "{\"complete\":true}" + "\n\n");
                     writer.flush();
-                    response.flushBuffer();
+                    //response.flushBuffer();
             //writeEvent(response, "status", "{\"complete\":true}");
+        }
+        else{
+            System.out.println("No conditions found with this task_id: "+task_id);
         }
         }  
     }

@@ -10,7 +10,6 @@ package it.units.malelab.dallape.tesimagistrale;
  * @author Samuele
  */
 import com.mongodb.*;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -29,6 +28,9 @@ public class database implements java.lang.AutoCloseable {
     private final String URI_MONGOLAB = "mongodb://shazu:Z6nEiQta8KhqM6!OM1v&76t@ds157233.mlab.com:57233/thesis";
     private MongoDatabase db;
     private MongoClient mC;
+    private final String COLLECTION_SITES = "SITES";
+    private final String ACTUAL_STATE = "STATE_LIST_SITES";
+    private final String TASKID_CONDITIONS = "TASKID_CONDITIONS"; //mappa hash-conditions
 
     public database() throws IllegalArgumentException {
         MongoClientURI dbURI = new MongoClientURI(URI_MONGOLAB);
@@ -74,12 +76,12 @@ public class database implements java.lang.AutoCloseable {
         return b;
     }
 
-    public boolean updateSite(Site a, String collection) throws MongoException {
-        boolean b = collectionExist(collection);
+    public boolean updateSitesCollection(Site a) throws MongoException {
+        boolean b = collectionExist(COLLECTION_SITES);
         if (b) {
             if(a.getUrl()!=null){//to avoid error
                 //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
-            Document doc = db.getCollection(collection).findOneAndReplace(new Document("url_site", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
+            Document doc = db.getCollection(COLLECTION_SITES).findOneAndReplace(new Document("url_site", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
             if (doc == null) {
                 b = false;
             }
@@ -90,7 +92,7 @@ public class database implements java.lang.AutoCloseable {
             
         }
         else{
-            createCollection(collection);
+            createCollection(COLLECTION_SITES);
         }
         return b;
     }
@@ -111,12 +113,12 @@ public class database implements java.lang.AutoCloseable {
         return b;
     }
 
-    public boolean existADocumentWithThisUrlInSITES(String url) {
-        return db.getCollection("SITES").find(new Document("url_site", url)).first()!=null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
+    public boolean existInSitesCollections(String url) {
+        return db.getCollection(COLLECTION_SITES).find(new Document("url_site", url)).first()!=null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
     }
 
-    public boolean existSiteInSTATE(String site) {
-        return db.getCollection("STATE_LIST_SITES").find(new Document("site", site)).first()!=null;//getTheFirstDocumentWithThisKeyValue("site", site, "STATE_LIST_SITES") != null;
+    public boolean existInSTATE(String site) {
+        return db.getCollection(ACTUAL_STATE).find(new Document("site", site)).first()!=null;//getTheFirstDocumentWithThisKeyValue("site", site, "STATE_LIST_SITES") != null;
     }
 
     //return the first Document with this url or null
@@ -160,9 +162,8 @@ public class database implements java.lang.AutoCloseable {
 
     public long howMuchRemainsInSTATE(String task_id) {
         //si potrebbe guardare nelle conditions al posto di fidarsi di questo
-        String collection="STATE_LIST_SITES";
-        if(! collectionExist(collection)) createCollection(collection);
-        return db.getCollection(collection).count(new Document("task_id", task_id));
+        if(! collectionExist(ACTUAL_STATE)) createCollection(ACTUAL_STATE);
+        return db.getCollection(ACTUAL_STATE).count(new Document("task_id", task_id));
     }
 
     public long howMuchRemainsInCollection(String key, Object value, String collection) {
