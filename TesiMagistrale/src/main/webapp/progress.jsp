@@ -112,17 +112,18 @@
     <div class="progress">            
         <div class="ui-progress-bar ui-container transition" id="progress_bar">
             <div id="progress" class="ui-progress" style="width: 1%;">
-                <span id="label" class="ui-label"></span>
+                <!--<span id="label" class="ui-label"></span>-->
             </div>
         </div>
     </div>
+    <span id="label" class="ui-label"></span>
     <script type="text/javascript">
 
             /* create the event source */
             var source = new EventSource('/TesiMagistrale/howMuch?task_id=${requestScope.task_id}');
             /* handle incoming messages */
             source.onmessage = function(event) {
-                if (event.type === 'message') {
+                if (event.type == 'message') {
                     // data expected to be in JSON-format, so parse */
                     var data = JSON.parse(event.data);
                     console.log(JSON.parse(event.data));
