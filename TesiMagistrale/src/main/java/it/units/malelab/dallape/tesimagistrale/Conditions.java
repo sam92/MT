@@ -26,7 +26,7 @@ public class Conditions {
     //private Thread t;
     private boolean paused = false;
     private boolean stopped = false;
-    private String current = "";
+    private String current;
     private Map<String, Boolean> progress;
 
     public Conditions() {
@@ -42,6 +42,7 @@ public class Conditions {
         for (String s : sites) {
             progress.put(s, false);
         }
+        current="";
     }
 
     public Conditions(Map<String, Boolean> progress, List<String> test, boolean reanalyze, String NAME_COLLECTION, String NAME_STATE) {
@@ -52,6 +53,7 @@ public class Conditions {
         //this.task_id = taskID;
         this.test = test;
         this.progress = progress;
+        current="";
     }
 
     public void setSites(List<String> sites) {
@@ -166,7 +168,7 @@ public class Conditions {
         for(String s: progress.keySet()){
             lista.add(new Document("site",s).append("done",progress.get(s)));
         }
-        doc.append("progress", lista).append("test", test).append("reanalyze", reanalyze).append("status", status).append("collection", NAME_COLLECTION).append("state", NAME_STATE);
+        doc.append("progress", lista).append("test", test).append("reanalyze", reanalyze).append("status", status).append("current",current).append("collection", NAME_COLLECTION).append("state", NAME_STATE);
         return doc;
     }
 
@@ -187,6 +189,9 @@ public class Conditions {
         List<String> test = (List<String>) doc.get("test");
         //List<String> sites = new ArrayList<>(mappa.keySet());
         Conditions c = new Conditions(map, test, doc.getBoolean("reanalyze"), doc.getString("collection"), doc.getString("state"));
+        if(doc.getString("current")!=null){
+            c.setCurrent(doc.getString("current"));
+        }
         switch (doc.getString("status")) {
             case "paused":
                 c.setPaused(true);
