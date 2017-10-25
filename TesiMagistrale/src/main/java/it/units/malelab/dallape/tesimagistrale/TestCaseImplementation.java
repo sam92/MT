@@ -131,9 +131,10 @@ public class TestCaseImplementation implements TestCase {
         //existJSForm = new HashMap<>();
         System.out.println("Url getted by ping: " + current.getRealUrl());
         wb = (!current.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
-        //if (wb != null) {
-        //    wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-        //}
+        /*if (wb != null) {
+            //wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+            //wb.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+        }*/
     }
 
     public TestCaseImplementation(String url, WebDriver webDriv) {
@@ -147,7 +148,7 @@ public class TestCaseImplementation implements TestCase {
 
     private void searchLogin(WebDriver driver, Site url, boolean cmsTest, List<String> listCMS) {
         if (!url.getRealUrl().equalsIgnoreCase("Unreachable") || driver != null) {
-            boolean go=true;
+            boolean go = true;
             if (url.getRealUrl().equalsIgnoreCase("") || cmsTest) {
                 try {
                     driver.get(url.getUrl());
@@ -162,43 +163,42 @@ public class TestCaseImplementation implements TestCase {
                     }
                 } catch (TimeoutException e) {
                     System.out.println("Timeout reached: " + e.getMessage());
-                    try{
-                    driver.get(url.getRealUrl());
-                    driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET * 2, TimeUnit.SECONDS);
-                    url.setRealUrl(driver.getCurrentUrl());
-                    String path = url.getRealUrl();
-                    System.out.println("Url getted by driver: " + path);
-                    if (cmsTest) {
-                        for (int i = 0; i < listCMS.size(); i++) {
-                            listCMS.set(i, path + listCMS.get(i));
+                    try {
+                        driver.get(url.getRealUrl());
+                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET * 2, TimeUnit.SECONDS);
+                        url.setRealUrl(driver.getCurrentUrl());
+                        String path = url.getRealUrl();
+                        System.out.println("Url getted by driver: " + path);
+                        if (cmsTest) {
+                            for (int i = 0; i < listCMS.size(); i++) {
+                                listCMS.set(i, path + listCMS.get(i));
+                            }
                         }
-                    }
-                    }
-                    catch(TimeoutException ex){
+                    } catch (TimeoutException ex) {
                         System.out.println("Timeout reached twice! FAILURE: " + e.getMessage());
-                        go=false;
+                        go = false;
                     }
                 }
 
             }
-            if(go){
-            for (String currentString : listCMS) {
-                System.out.println("Test CMS for: " + currentString);
-                //faccio un ping prima di iniziare tranne per current=""
-                if (!((SiteImplementation) url).isAlreadyScanned(currentString)) {
-                    Boolean start = SiteImplementation.isReachable(currentString);
-                    System.out.println("Is this reachable : " + start);
-                    if (start/*|| (reachable.containsKey(currentString) ? reachable.get(currentString) : SiteImplementation.isReachable(currentString))*/) {
-                        ((SiteImplementation) url).setScanned(currentString);
-                        String[] coppiePageAction = searchForFormInThisPage(driver, currentString);
-                        if (!(coppiePageAction[0].isEmpty() && coppiePageAction[1].isEmpty() && coppiePageAction[2].isEmpty()) && !((SiteImplementation) url).existIntoResult(coppiePageAction)) {
-                            System.out.println("Result:\n" + "Dove ho trovato il form: " + coppiePageAction[0] + "\n" + "Url dell'action del form: " + coppiePageAction[1] + "\n" + "Sito da cui provenivo o click:  " + coppiePageAction[2] + "\n");
-                            ((SiteImplementation) url).insertIntoResult(coppiePageAction);
+            if (go) {
+                for (String currentString : listCMS) {
+                    System.out.println("Test CMS for: " + currentString);
+                    //faccio un ping prima di iniziare tranne per current=""
+                    if (!((SiteImplementation) url).isAlreadyScanned(currentString)) {
+                        Boolean start = SiteImplementation.isReachable(currentString);
+                        System.out.println("Is this reachable : " + start);
+                        if (start) {
+                            ((SiteImplementation) url).setScanned(currentString);
+                            String[] coppiePageAction = searchForFormInThisPage(driver, currentString);
+                            if (!(coppiePageAction[0].isEmpty() && coppiePageAction[1].isEmpty() && coppiePageAction[2].isEmpty()) && !((SiteImplementation) url).existIntoResult(coppiePageAction)) {
+                                System.out.println("Result:\n" + "Dove ho trovato il form: " + coppiePageAction[0] + "\n" + "Url dell'action del form: " + coppiePageAction[1] + "\n" + "Sito da cui provenivo o click:  " + coppiePageAction[2] + "\n");
+                                ((SiteImplementation) url).insertIntoResult(coppiePageAction);
+                            }
                         }
                     }
                 }
             }
-        }
         }
     }
 
@@ -212,6 +212,7 @@ public class TestCaseImplementation implements TestCase {
         if (!existForm.containsKey(url)) {
             try {
                 driver.get(url);
+                driver.manage().timeouts().implicitlyWait(SOGLIA_GET / 30, TimeUnit.SECONDS);
                 driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
                 String currentUrl = driver.getCurrentUrl();
                 System.out.println("Searching for Form with password in real url: " + currentUrl);
@@ -224,13 +225,12 @@ public class TestCaseImplementation implements TestCase {
                         actions[0] = currentUrl.trim();
                         actions[1] = el.getAttribute("action").trim();
                         actions[2] = url.trim();
-                    }else if(!el.findElements(By.xpath("//input[@type='password']")).isEmpty()) {
+                    } else if (!el.findElements(By.xpath("//input[@type='password']")).isEmpty()) {
                         exist = true;
                         actions[0] = currentUrl.trim();
                         actions[1] = el.getAttribute("action").trim();
                         actions[2] = url.trim();
-                    }
-                    else if(!el.findElements(By.xpath("//input[@type='Password']")).isEmpty()) {
+                    } else if (!el.findElements(By.xpath("//input[@type='Password']")).isEmpty()) {
                         exist = true;
                         actions[0] = currentUrl.trim();
                         actions[1] = el.getAttribute("action").trim();
@@ -243,14 +243,19 @@ public class TestCaseImplementation implements TestCase {
                 } else {
                     exist = false;
                     System.out.println("Searching for JSForm in real url: " + currentUrl);
-                    if (!driver.findElements(By.xpath("//input[@type='password']")).isEmpty()) {
+                    if (!driver.findElements(By.xpath(".//input[@type='password']")).isEmpty()) {
                         exist = true;
                         actions[0] = currentUrl.trim(); //sito dove ho trovato il form
                         actions[1] = "javascript"; // url action
                         actions[2] = url.trim(); //sito da cui provenivo o su cui ho fatto click
                         existForm.put(url, actions);
-                    }
-                    else if(!driver.findElements(By.xpath("//input[@type='Password']")).isEmpty()) {
+                    } else if (!driver.findElements(By.xpath("//input[@type='Password']")).isEmpty()) {
+                        exist = true;
+                        actions[0] = currentUrl.trim(); //sito dove ho trovato il form
+                        actions[1] = "javascript"; // url action
+                        actions[2] = url.trim(); //sito da cui provenivo o su cui ho fatto click
+                        existForm.put(url, actions);
+                    } else if (!driver.findElements(By.xpath("//*[@type='password']")).isEmpty()) {
                         exist = true;
                         actions[0] = currentUrl.trim(); //sito dove ho trovato il form
                         actions[1] = "javascript"; // url action
@@ -273,258 +278,164 @@ public class TestCaseImplementation implements TestCase {
         return actions;
     }
 
-    /*private String[] searchForFormInThisPage(WebDriver driver, String url) {
-        String[] actions = existFormPassword(driver, url);
-        if (actions[0].trim().isEmpty()) {
-            actions = existJSPassword(driver, url);
-            if (actions[0].trim().isEmpty()) {
-                actions = new String[3];
-                actions[0] = "";
-                actions[1] = "";
-                actions[2] = "";
-            }
-        }
-        return actions;
-    }
-
-    //if there is a login form return an array with the site serving the form and the action of the form
-    private String[] existFormPassword(WebDriver driver, String url) {
-        System.out.println("Test if exist form in: " + url);
-        String[] actions = new String[3];
-        actions[0] = "";
-        actions[1] = "";
-        actions[2] = "";
-        if (!existForm.containsKey(url)) {
-            driver.get(url);
-            //String currentSite = driver.getCurrentUrl();
-            System.out.println("Searching for Form with password in real url: " + driver.getCurrentUrl());
-            boolean exist = false;
-            List<WebElement> elements = driver.findElements(By.tagName("form"));
-            for (WebElement el : elements) {
-                //   .// significa cerca nei figli (di form) che sono input di tipo password
-                if (!el.findElements(By.xpath(".//input[@type='password']")).isEmpty()) {
-                    exist = true;
-                    actions[0] = driver.getCurrentUrl().trim();
-                    actions[1] = el.getAttribute("action").trim();
-                    actions[2] = url.trim();
-                }
-            }
-            if (exist) {
-                existForm.put(url, actions);
-            }
-            System.out.println(exist ? "\t Found Form" : "\t Not Found Form");
-            //driver.navigate().back();
-        } else {
-            if (existForm.get(url) != null) {
-                actions = existForm.get(url);
-            }
-            System.out.println("Already exist in map: " + url);
-        }
-        return actions;
-    }
-
-    private String[] existJSPassword(WebDriver driver, String url) {
-        System.out.println("Test if exist JSform in: " + url);
-        String[] actions = new String[3];
-        actions[0] = "";
-        actions[1] = "";
-        actions[2] = "";
-        if (!existJSForm.containsKey(url)) {
-            driver.get(url);
-            //String currentSite = driver.getCurrentUrl();
-            System.out.println("Searching for JSForm in real url: " + driver.getCurrentUrl());
-            boolean exist = false;
-            List<WebElement> password = driver.findElements(By.xpath("//input[@type='password']"));
-            //System.out.println(!password.isEmpty() ? "\t Found" : "\t Not Found");
-            if (!password.isEmpty()) {
-                exist = true;
-                actions[0] = driver.getCurrentUrl().trim(); //sito dove ho trovato il form
-                actions[1] = "javascript"; // url action
-                actions[2] = url.trim(); //sito da cui provenivo o su cui ho fatto click
-                existJSForm.put(url, actions);
-            }
-            System.out.println(exist ? "\t Found JSForm" : "\t Not Found JSForm");
-        } else {
-            if (existJSForm.get(url) != null) {
-                actions = existJSForm.get(url);
-            }
-            System.out.println("Already exist in map: " + url);
-        }
-        return actions;
-    }
-     */
- /*
+    /*
     return the list of path containing a login form in wordpress or joomla
      */
     private List<String> searchAndFollowLink(WebDriver driver, Site url) {
         System.out.println("Search for link to follow in: " + url.getRealUrl());
         List<String> linkToLogin = new ArrayList<>();
-        try{
-        
-        driver.get(url.getRealUrl());
-        driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
-        System.out.println("Get: " + driver.getCurrentUrl());
-        List<WebElement> elements = new ArrayList<>();
-        boolean notFinished = true;
-        List<String> nameLogin = defaultWordsLogin();
-        int i = -1;
-        while (elements.isEmpty() && notFinished) {
-            i++;
-            try{
-            /*elements.addAll(driver.findElements(By.partialLinkText(nameLogin[i])));//non credo che funzioni questo
-            elements.addAll(driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin[i] + "')]")));
-            elements.addAll(driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin[i] + "')]")));
-             */
-            //System.out.println("Searching for partial link...");
-            elements=driver.findElements(By.xpath("//a[contains(@href, '" + nameLogin.get(i) + "')]"));
-            
-            System.out.println("PartialLink matching" + nameLogin.get(i) + ":\t" + elements.size());
-            System.out.println(driver.getPageSource());
-            if (elements.isEmpty()) {
-                System.out.println("A matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]")).size());
-                elements = driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]"));
-            }
-            else if(elements.isEmpty()){
-                elements = driver.findElements(By.partialLinkText(nameLogin.get(i)));//non credo che funzioni questo
-            }
-            /*if(elements.isEmpty()){
+        try {
+
+            driver.get(url.getRealUrl());
+            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+            System.out.println("Get: " + driver.getCurrentUrl());
+            List<WebElement> elements = new ArrayList<>();
+            boolean notFinished = true;
+            List<String> nameLogin = defaultWordsLogin();
+            int i = -1;
+            while (elements.isEmpty() && notFinished) {
+                i++;
+                try {
+                    //System.out.println("Searching for partial link...");
+                    elements = driver.findElements(By.xpath("//a[contains(@href, '" + nameLogin.get(i) + "')]"));
+
+                    System.out.println("PartialLink matching" + nameLogin.get(i) + ":\t" + elements.size());
+                    //System.out.println(driver.getPageSource());
+                    if (elements.isEmpty()) {
+                        System.out.println("A matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]")).size());
+                        elements = driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]"));
+                    } else if (elements.isEmpty()) {
+                        elements = driver.findElements(By.partialLinkText(nameLogin.get(i)));//non credo che funzioni questo
+                    } /*if(elements.isEmpty()){
                 elements=driver.findElements(By.xpath("//*[contains(@href, '" + nameLogin.get(i) + "')]"));
-            }*/
-            else if (elements.isEmpty()) {
-                System.out.println("Button matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]")).size());
-                elements = driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]"));
-            }
-            for (WebElement el : elements) {
-                // se è un bottone clicco, se invece è un link provo a navigarci verso
-                if (el.getTagName().equalsIgnoreCase("a")) {
-                    String urlHref = el.getAttribute("href");
-                    System.out.println("Find A element with href: " + urlHref);
-                    if(urlHref.startsWith("http")){
-                        if (!linkToLogin.contains(urlHref)) {
-                                linkToLogin.add(SiteImplementation.sanitization(urlHref,false));
-                            }
+            }*/ else if (elements.isEmpty()) {
+                        System.out.println("Button matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]")).size());
+                        elements = driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]"));
                     }
-                    else{
-                    if (el.isDisplayed() && el.isEnabled()) {
-                        try {
-                            el.click();
-                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
-                            String currentUrl = driver.getCurrentUrl();
-                            if (!linkToLogin.contains(currentUrl)) {
-                                linkToLogin.add(SiteImplementation.sanitization(currentUrl,false));
+                    for (WebElement el : elements) {
+                        // se è un bottone clicco, se invece è un link provo a navigarci verso
+                        if (el.getTagName().equalsIgnoreCase("a")) {
+                            String urlHref = el.getAttribute("href");
+                            System.out.println("Find A element with href: " + urlHref);
+                            if (urlHref.startsWith("http")) {
+                                if (!linkToLogin.contains(urlHref)) {
+                                    linkToLogin.add(SiteImplementation.sanitization(urlHref, false));
+                                }
+                            } else {
+                                if (el.isDisplayed() && el.isEnabled()) {
+                                    try {
+                                        el.click();
+                                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
+                                        String currentUrl = driver.getCurrentUrl();
+                                        if (!linkToLogin.contains(currentUrl)) {
+                                            linkToLogin.add(SiteImplementation.sanitization(currentUrl, false));
+                                        }
+                                        System.out.println("After click on A arrived a:  " + currentUrl);
+                                    } catch (TimeoutException e) {
+                                        System.out.println("Timeout reached: " + e.getMessage());
+                                        try {
+                                            driver.get(url.getRealUrl());
+                                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+                                        } catch (TimeoutException exe) {
+                                            System.out.println("FAILURE on GET after timeout: " + exe.getMessage());
+                                            notFinished = false;
+                                        }
+                                    }
+                                } else {
+                                    try {
+                                        urlHref = SiteImplementation.sanitization(urlHref, true);
+                                        driver.navigate().to(urlHref);
+                                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
+                                        String currentUrl = driver.getCurrentUrl();
+                                        if (!linkToLogin.contains(currentUrl)) {
+                                            linkToLogin.add(SiteImplementation.sanitization(currentUrl, false));
+                                        }
+                                        System.out.println("After click on A arrived a:  " + currentUrl);
+                                    } catch (TimeoutException e) {
+                                        System.out.println("Timeout reached: " + e.getMessage());
+                                        try {
+                                            driver.get(url.getRealUrl());
+                                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+                                        } catch (TimeoutException exe) {
+                                            System.out.println("FAILURE on GET after timeout: " + exe.getMessage());
+                                            notFinished = false;
+                                        }
+                                    }
+                                }
                             }
-                            System.out.println("After click on A arrived a:  " + currentUrl);
-                        } catch (TimeoutException e) {
-                            System.out.println("Timeout reached: " + e.getMessage());
-                            try{
-                            driver.get(url.getRealUrl());
-                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
-                            }
-                            catch(TimeoutException exe){
-                                System.out.println("FAILURE on GET after timeout: "+exe.getMessage());
-                                notFinished=false;
-                            }
-                        }
-                    } else {
-                        try {
-                            urlHref=SiteImplementation.sanitization(urlHref, true);
-                            driver.navigate().to(urlHref);
-                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
-                            String currentUrl = driver.getCurrentUrl();
-                            if (!linkToLogin.contains(currentUrl)) {
-                                linkToLogin.add(SiteImplementation.sanitization(currentUrl,false));
-                            }
-                            System.out.println("After click on A arrived a:  " + currentUrl);
-                        } catch (TimeoutException e) {
-                            System.out.println("Timeout reached: " + e.getMessage());
-                            try{
-                            driver.get(url.getRealUrl());
-                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
-                            }
-                            catch(TimeoutException exe){
-                                System.out.println("FAILURE on GET after timeout: "+exe.getMessage());
-                                notFinished=false;
-                            }
-                        }
-                    }
-                    }
-                    /*String currentUrl = driver.getCurrentUrl();
+                            /*String currentUrl = driver.getCurrentUrl();
                     if (!linkToLogin.contains(currentUrl)) {
                         linkToLogin.add(currentUrl);
                     }
                     System.out.println("After click on A arrived a:  " + currentUrl);
                     driver.navigate().back();
                     driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);*/
-                    //((PhantomDriver) driver).waitUntilLoad(2);
-                } else {
-                    //navigate
-                    if (el.getTagName().contains("button")) {
-                        //then click
-                        if (el.isDisplayed() && el.isEnabled()) {
-                            try {
-                                el.click();
-                                driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
-                                String currentUrl = driver.getCurrentUrl();
-                                if (!linkToLogin.contains(currentUrl)) {
-                                    linkToLogin.add(SiteImplementation.sanitization(currentUrl,false));
-                                    System.out.println("After click on Button arrived a:  " + currentUrl);
-                                }
-                                driver.navigate().back();
-                                driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
-                            } catch (TimeoutException e) {
-                                System.out.println("Timeout reached: " + e.getMessage());
-                                try{
-                            driver.get(url.getRealUrl());
-                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
-                            }
-                            catch(TimeoutException exe){
-                                System.out.println("FAILURE on GET after timeout: "+exe.getMessage());
-                                notFinished=false;
-                            }
-                            }
+                            //((PhantomDriver) driver).waitUntilLoad(2);
+                        } else {
+                            //navigate
+                            if (el.getTagName().contains("button")) {
+                                //then click
+                                if (el.isDisplayed() && el.isEnabled()) {
+                                    try {
+                                        el.click();
+                                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
+                                        String currentUrl = driver.getCurrentUrl();
+                                        if (!linkToLogin.contains(currentUrl)) {
+                                            linkToLogin.add(SiteImplementation.sanitization(currentUrl, false));
+                                            System.out.println("After click on Button arrived a:  " + currentUrl);
+                                        }
+                                        driver.navigate().back();
+                                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
+                                    } catch (TimeoutException e) {
+                                        System.out.println("Timeout reached: " + e.getMessage());
+                                        try {
+                                            driver.get(url.getRealUrl());
+                                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+                                        } catch (TimeoutException exe) {
+                                            System.out.println("FAILURE on GET after timeout: " + exe.getMessage());
+                                            notFinished = false;
+                                        }
+                                    }
 
+                                }
+                            }
                         }
                     }
+                } catch (StaleElementReferenceException stl) {
+                    System.out.println(stl.getMessage());
+                    try {
+                        driver.get(url.getRealUrl());
+                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+                    } catch (TimeoutException exe) {
+                        System.out.println("FAILURE on GET after stale error : " + exe.getMessage());
+                        notFinished = false;
+                    }
+                }
+                if (i == nameLogin.size() - 1) {
+                    notFinished = false;
                 }
             }
+            System.out.println("Link find in " + url.getUrl() + " to follow:");
+            System.out.println("--------------------");
+            if (linkToLogin.contains(url.getUrl())) {
+                linkToLogin.remove(url.getUrl());
             }
-            catch(StaleElementReferenceException stl){
-                System.out.println(stl.getMessage());
-                try{
-                            driver.get(url.getRealUrl());
-                            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
-                            }
-                            catch(TimeoutException exe){
-                                System.out.println("FAILURE on GET after stale error : "+exe.getMessage());
-                                notFinished=false;
-                            }
+            if (linkToLogin.contains(url.getRealUrl())) {
+                linkToLogin.remove(url.getRealUrl());
             }
-            if (i == nameLogin.size() - 1) {
-                notFinished = false;
+            List<String> linkToLog = new ArrayList<>(linkToLogin);
+            for (String s : linkToLog) {
+                if (((SiteImplementation) url).alreadyFindInUrlOrFormLocation(s)) {
+                    linkToLogin.remove(s);
+                }
             }
-        }
-        System.out.println("Link find in " + url.getUrl() + " to follow:");
-        System.out.println("--------------------");
-        if (linkToLogin.contains(url.getUrl())) {
-            linkToLogin.remove(url.getUrl());
-        }
-        if (linkToLogin.contains(url.getRealUrl())) {
-            linkToLogin.remove(url.getRealUrl());
-        }
-        List<String> linkToLog = new ArrayList<>(linkToLogin);
-        for (String s : linkToLog) {
-            if (((SiteImplementation) url).alreadyFindInUrlOrFormLocation(s)) {
-                linkToLogin.remove(s);
+            for (String s : linkToLogin) {
+                System.out.println(s);
             }
+            System.out.println("--------------------");
+        } catch (TimeoutException ex) {
+            System.out.println("Timeout reached! " + ex.getMessage());
         }
-        for (String s : linkToLogin) {
-            System.out.println(s);
-        }
-        System.out.println("--------------------");
-    }
-    catch(TimeoutException ex){
-        System.out.println("Timeout reached! "+ex.getMessage());
-}
         //System.out.println("Refreshing to: " + driver.getCurrentUrl());
         System.out.println();
         return linkToLogin;
@@ -570,11 +481,8 @@ public class TestCaseImplementation implements TestCase {
     @Override
     public void searchFormInLinkedPagesOfHomepage() {
         if (!current.isUnreachable()) {
-            System.out.println("START of searching in LINKED page:");
             List<String> listaLink = searchAndFollowLink(wb, current);
             if (!listaLink.isEmpty()) {
-                //wb = new PhantomDriver(PhantomDriver.capabilities());
-                //wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
                 searchLogin(wb, current, false, listaLink);
             }
         }
