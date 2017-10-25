@@ -18,7 +18,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.codec.digest.DigestUtils;
 
 /*
 idea fare un hashmap generica che contiene il taskid
@@ -62,6 +61,7 @@ public class ServletJob extends HttpServlet {
             String COLLECTION_SITES = "SITES";
             String ACTUAL_STATE = "STATE_LIST_SITES";
             String TASKID_CONDITIONS = "TASKID_CONDITIONS"; //mappa hash-conditions
+            String TASKID = "TASKID";
 
 //al client deve essere inviato l'hash perché deve poter visualizzare le info di quella request. al posto di un counter l'hash potrebbe essere il task_id
             try (database db = new database()) {
@@ -74,6 +74,9 @@ public class ServletJob extends HttpServlet {
                 }
                 if (!db.collectionExist(COLLECTION_SITES)) {
                     db.createCollection(COLLECTION_SITES);
+                }
+                if (!db.collectionExist(TASKID)) {
+                    db.createCollection(TASKID);
                 }
 //SE C'E ROBA NELLO STATO MA NON ESISTE IL CORRISPONDENTE TASK ID IN TASKID-CONDITION RIMUOVI TUTTO DALLO STATO
                 switch (action) {
@@ -89,14 +92,18 @@ public class ServletJob extends HttpServlet {
                             for (String s : sitesInInput) {
                                 if (!s.trim().isEmpty()) {
                                     Matcher m = pattern.matcher(s.trim());
-                                    if(m.matches()) sites.add(SiteImplementation.sanitization(s, true));
+                                    if (m.matches()) {
+                                        sites.add(SiteImplementation.sanitization(s, true));
+                                    }
                                 }
                             }
-                            String phrase = "";
+                            /*String phrase = "";
                             for (int i = 0; i < sites.size(); i++) {
                                 phrase += sites.get(i);
                             }
-                            task_id = DigestUtils.sha1Hex(phrase);
+                            task_id = DigestUtils.sha1Hex(phrase);*/
+                            task_id = test.size() + "" + test.hashCode();
+
                             con = new Conditions(sites, test, reanalyze, COLLECTION_SITES, ACTUAL_STATE);
                             db.insertValueMap(task_id, con, TASKID_CONDITIONS);
                             //mapTask.put(task_id, con);
@@ -115,14 +122,13 @@ public class ServletJob extends HttpServlet {
                         context.setAttribute("map", mapThread);
                         t.start();
 
-                        if (!resume) {
-                            //fare un dispatcher verso il jsp che gestisce la progress bar
-                            //response with progress bar and task_id to stop operations
-                            //fare un dispatcher e mandare indietro task_id
-                            request.setAttribute("task_id", task_id);
-                            request.getRequestDispatcher("progress.jsp").forward(request, response);
-                        }
-
+                        //if (!resume) {
+                        //fare un dispatcher verso il jsp che gestisce la progress bar
+                        //response with progress bar and task_id to stop operations
+                        //fare un dispatcher e mandare indietro task_id
+                        request.setAttribute("task_id", task_id);
+                        request.getRequestDispatcher("progress.jsp").forward(request, response);
+                        //}
                         break;
                     case "stop":
                         //Conditions c = mapTask.remove(task_id);
@@ -134,13 +140,9 @@ public class ServletJob extends HttpServlet {
                                 ((executeTest) toBeStopped).kill();
                                 mapThread.remove(task_id);
                                 context.setAttribute("map", mapThread);
-                                //mappaConditions.remove(hash);
-                                //db.getMongoDB().getCollection(STATE).deleteMany(new Document("task_id", hash));
-                                //fare un dispatcher fatto ad hoc che rimanda alla pagina principale
                             }
-                            //sovrascrivere mappa in db
                         }
-                        request.getRequestDispatcher("stop.html").forward(request, response);
+                        request.getRequestDispatcher("index.html").forward(request, response);
                         break;
                     case "pause":
                         //setta nelle conditions come lista di sites quelli che sono rimasti in db
@@ -150,13 +152,16 @@ public class ServletJob extends HttpServlet {
                             mapThread = (Map<String, Thread>) context.getAttribute("map");
                             if (condit != null && mapThread.get(task_id) != null) {
                                 Thread toBePaused = mapThread.get(task_id);
+                                System.out.println("FIND THREAD");
                                 ((executeTest) toBePaused).pause();
-                                condit.setPaused(true);
-                                db.updateValueMap(task_id, condit, TASKID_CONDITIONS, false);
+                                condit.setPaused(true); //non sarebbe necessario
+                                db.updateValueMap(task_id, condit, TASKID_CONDITIONS, false); //non sarebbe necessario
                                 mapThread.remove(task_id);
                                 context.setAttribute("map", mapThread);
                             }
                             //sovrascrivere la mappa in db
+                            request.setAttribute("task_id", task_id);
+                            request.getRequestDispatcher("resume.jsp").forward(request, response);
                         }
                         break;
                     default: //dispatcher 404
@@ -168,7 +173,7 @@ public class ServletJob extends HttpServlet {
                 //throw new RuntimeException(e);
             }
         } else {
-            request.getRequestDispatcher("error.html").forward(request, response);
+            request.getRequestDispatcher("index.html").forward(request, response);
         }
     }
 
