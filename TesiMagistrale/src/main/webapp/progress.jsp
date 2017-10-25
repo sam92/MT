@@ -6,7 +6,7 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html>
+<html >
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>JSP Page</title>
@@ -105,7 +105,7 @@
     </style>
     </head>
     <body>
-        <h1 >Hello World!</h1>
+        <h1 >Sites test</h1>
         <!--<a href="#" onclick="startTask(); return false;">Start Long Task</a><br /><br />-->
 
     <!-- Progress bar adapted from http://www.catswhocode.com/blog/how-to-create-a-kick-ass-css3-progress-bar -->
@@ -117,6 +117,17 @@
         </div>
     </div>
     <span id="label" class="ui-label"></span>
+    <span id="result"></span>
+    <br>
+    <div>
+    <a href="/TesiMagistrale/doJob?task_id=${requestScope.task_id}&condition=pause" target="_self">
+Pause
+            </a>
+
+<a href="/TesiMagistrale/doJob?task_id=${requestScope.task_id}&condition=stop" target="_self">
+Stop
+            </a>
+                </div>
     <script type="text/javascript">
 
             /* create the event source */
@@ -133,20 +144,24 @@
                         source.close();
                         // update the UI now that task is complete
                         document.getElementById('label').innerHTML = 'Complete';
+                        document.getElementById('result').innerHTML= '<a href="/TesiMagistrale/getResult?task_id=${requestScope.task_id}" >See result</a>';
                     }
                     // otherwise, it's a progress update so just update progress bar
                     else {
                         var pct = 100.0 * data.current_nr / data.total;
                         document.getElementById('progress').style.width = pct + '%';
-                        document.getElementById('label').innerHTML = data.current_nr + ' of ' + data.total+' current: '+data.current;
+                        document.getElementById('label').innerHTML = data.current_nr + ' of ' + data.total+' scanning: '+data.current;
                         
                     }
                 }
             };
             source.onerror = function(event) {
                 console.log('Failed to Start EventSource: ', source.readystate);
+                document.getElementById('label').innerHTML = 'ERROR';
+                document.getElementById('progress').style.width = 100 + '%';
             };
  
     </script>
+
     </body>
 </html>
