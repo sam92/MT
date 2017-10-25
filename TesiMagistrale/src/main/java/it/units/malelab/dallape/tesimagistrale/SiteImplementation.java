@@ -30,6 +30,7 @@ public class SiteImplementation implements Site {
     private final List<String[]> result;
     private String TASK_ID;
     private List<String> scanned;
+    private int level;
 
     public SiteImplementation(String url) throws AssertionError {
         assert !url.trim().isEmpty();
@@ -40,6 +41,7 @@ public class SiteImplementation implements Site {
         visited = false;
         scanned = new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
+        level = 0;
     }
 
     public SiteImplementation(String url, String taskID) throws AssertionError {
@@ -51,6 +53,7 @@ public class SiteImplementation implements Site {
         visited = false;
         scanned = new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
+        level = 0;
     }
 
     @Override
@@ -151,6 +154,13 @@ public class SiteImplementation implements Site {
             }
             if (!alreadyExist) {
                 result.add(terna);
+                if (!(terna[0].startsWith("https") && terna[1].startsWith("https") && terna[2].startsWith("https"))) {
+                    if (!(terna[0].startsWith("http") && terna[1].startsWith("http") && terna[2].startsWith("http"))) {
+                        if(level<2) level = 1;
+                    } else {
+                        level = 2;
+                    }
+                }
             }
         }
     }
@@ -195,6 +205,9 @@ public class SiteImplementation implements Site {
             scanned.add(value);
         }
     }
+    public int getLevel(){
+        return level;
+    }
 
     public JSONObject toJSON() {
         JSONObject json = new JSONObject();
@@ -218,6 +231,9 @@ public class SiteImplementation implements Site {
         json.put("visited", visited);
         if (timestamp != null) {
             json.put("timestamp", timestamp.toString());
+        }
+        if (level>=0) {
+            json.put("level", level);
         }
         json.put("result", new JSONArray(list));
         return json;
@@ -294,7 +310,7 @@ public class SiteImplementation implements Site {
             Document w = new Document().append("link_click", current[2]).append("action", current[1]).append("location_form", current[0]);
             list.add(w);
         }
-        Document doc = new Document("url_site", url).append("url_site_true", url_after_get).append("task_id", TASK_ID).append("visited", visited).append("timestamp", timestamp.toString()).append("result", list);
+        Document doc = new Document("url_site", url).append("url_site_true", url_after_get).append("level",level).append("task_id", TASK_ID).append("visited", visited).append("timestamp", timestamp.toString()).append("result", list);
         //Document doc = new Document("$push", new Document("result", new Document("timestamp", timestamp).append("url_finded", new JSONArray(list))));
         return doc;
     }
@@ -307,13 +323,13 @@ public class SiteImplementation implements Site {
         if (d.getString("task_id") != null) {
             s.setTASKID(d.getString("task_id"));
         }
-        if (d.getString("visited") != null) {
+        if (d.getBoolean("visited") != null) {
             s.setVisited(d.getBoolean("visited"));
         }
         if (d.getString("timestamp") != null) {
             s.setTimestamp(Timestamp.valueOf(d.getString("timestamp")));
         }
-        if (d.getString("result") != null) {
+        if (d.get("result") != null) {
             List<Document> result1 = (List<Document>) d.get("result");
             String[] current = new String[3];
             for (Document doc : result1) {
@@ -323,7 +339,9 @@ public class SiteImplementation implements Site {
                 ((SiteImplementation) s).insertIntoResult(current);
             }
         }
-
+        if (d.getInteger("level") != null) {
+            assert(d.getInteger("level")==((SiteImplementation)s).getLevel());
+        }
         return s;
     }
 
