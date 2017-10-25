@@ -23,7 +23,8 @@ public class TestCaseImplementation implements TestCase {
         List<String> sites = new ArrayList<>();
         //sites.add("www.trieste6.net");
         //sites.add("www.trieste2.it");
-        sites.add("http://www.regione.fvg.it");
+        sites.add("www.agi.it");
+        /*sites.add("http://www.regione.fvg.it");
         sites.add("www.uslumbria1.gov.it");
         sites.add("www.uslumbria2.it");
         sites.add("www.asl.vt.it");
@@ -51,7 +52,7 @@ public class TestCaseImplementation implements TestCase {
         sites.add("www.capritourism.com");
         sites.add("www.pompeiturismo.it");
         sites.add("http://www.ass3.sanita.fvg.it");
-        sites.add("www.arlas.campania.it");
+        sites.add("www.arlas.campania.it");*/
         List<String> whatTest = new ArrayList<>();
         whatTest.add("wordpress");
         whatTest.add("joomla");
@@ -223,6 +224,17 @@ public class TestCaseImplementation implements TestCase {
                         actions[0] = currentUrl.trim();
                         actions[1] = el.getAttribute("action").trim();
                         actions[2] = url.trim();
+                    }else if(!el.findElements(By.xpath("//input[@type='password']")).isEmpty()) {
+                        exist = true;
+                        actions[0] = currentUrl.trim();
+                        actions[1] = el.getAttribute("action").trim();
+                        actions[2] = url.trim();
+                    }
+                    else if(!el.findElements(By.xpath("//input[@type='Password']")).isEmpty()) {
+                        exist = true;
+                        actions[0] = currentUrl.trim();
+                        actions[1] = el.getAttribute("action").trim();
+                        actions[2] = url.trim();
                     }
                 }
                 System.out.println(exist ? "\t Found Form" : "\t Not Found Form");
@@ -231,8 +243,14 @@ public class TestCaseImplementation implements TestCase {
                 } else {
                     exist = false;
                     System.out.println("Searching for JSForm in real url: " + currentUrl);
-                    List<WebElement> password = driver.findElements(By.xpath("//input[@type='password']"));
-                    if (!password.isEmpty()) {
+                    if (!driver.findElements(By.xpath("//input[@type='password']")).isEmpty()) {
+                        exist = true;
+                        actions[0] = currentUrl.trim(); //sito dove ho trovato il form
+                        actions[1] = "javascript"; // url action
+                        actions[2] = url.trim(); //sito da cui provenivo o su cui ho fatto click
+                        existForm.put(url, actions);
+                    }
+                    else if(!driver.findElements(By.xpath("//input[@type='Password']")).isEmpty()) {
                         exist = true;
                         actions[0] = currentUrl.trim(); //sito dove ho trovato il form
                         actions[1] = "javascript"; // url action
@@ -358,18 +376,22 @@ public class TestCaseImplementation implements TestCase {
             elements.addAll(driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin[i] + "')]")));
              */
             //System.out.println("Searching for partial link...");
-            elements = driver.findElements(By.partialLinkText(nameLogin.get(i)));//non credo che funzioni questo
-            //System.out.println("PartialLink matching" + nameLogin.get(i) + ":\t" + elements.size());
+            elements=driver.findElements(By.xpath("//a[contains(@href, '" + nameLogin.get(i) + "')]"));
+            
+            System.out.println("PartialLink matching" + nameLogin.get(i) + ":\t" + elements.size());
+            System.out.println(driver.getPageSource());
             if (elements.isEmpty()) {
-                /*System.out.println("Searching for partial link failed");
-                System.out.println("Searching for A element...");
-                System.out.println("A matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]")).size());*/
+                System.out.println("A matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]")).size());
                 elements = driver.findElements(By.xpath(".//a[contains(text(), '" + nameLogin.get(i) + "')]"));
             }
-            if (elements.isEmpty()) {
-                /*System.out.println("Searching for A element failed");
-                System.out.println("Searching for Button element...");
-                System.out.println("Button matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]")).size());*/
+            else if(elements.isEmpty()){
+                elements = driver.findElements(By.partialLinkText(nameLogin.get(i)));//non credo che funzioni questo
+            }
+            /*if(elements.isEmpty()){
+                elements=driver.findElements(By.xpath("//*[contains(@href, '" + nameLogin.get(i) + "')]"));
+            }*/
+            else if (elements.isEmpty()) {
+                System.out.println("Button matching" + nameLogin.get(i) + ":\t" + driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]")).size());
                 elements = driver.findElements(By.xpath(".//button[contains(text(), '" + nameLogin.get(i) + "')]"));
             }
             for (WebElement el : elements) {
@@ -405,9 +427,7 @@ public class TestCaseImplementation implements TestCase {
                         }
                     } else {
                         try {
-                            if (!urlHref.startsWith("http")) {
-                                urlHref = "http://" + urlHref;
-                            }
+                            urlHref=SiteImplementation.sanitization(urlHref, true);
                             driver.navigate().to(urlHref);
                             driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);
                             String currentUrl = driver.getCurrentUrl();
