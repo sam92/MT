@@ -12,6 +12,10 @@
         <servlet-name>mapTasks</servlet-name>
         <servlet-class>it.units.malelab.dallape.tesimagistrale.mapTasks</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>getResult</servlet-name>
+        <servlet-class>it.units.malelab.dallape.tesimagistrale.getResult</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>ServletJob</servlet-name>
         <url-pattern>/doJob</url-pattern>
@@ -23,6 +27,10 @@
     <servlet-mapping>
         <servlet-name>mapTasks</servlet-name>
         <url-pattern>/getTasks</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>getResult</servlet-name>
+        <url-pattern>/getResult</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>
