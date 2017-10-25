@@ -33,48 +33,56 @@ public class howMuch extends HttpServlet {
         response.setHeader("Cache-Control", "no-cache");
         response.setCharacterEncoding("UTF-8");
         String task_id = request.getParameter("task_id");
-        try(database db=new database(); PrintWriter writer = response.getWriter();){
-            Conditions c = db.getConditionFromMap(task_id, "TASKID_CONDITIONS");
-        if (c != null) {
-            int total = c.getSites().size();
-            int alreadyscan = c.getNrAlreadyScan();
-            System.out.println("fatti: "+alreadyscan + "/"+total);
-            while (total != alreadyscan) {
-                c = db.getConditionFromMap(task_id, "TASKID_CONDITIONS");
-                if (alreadyscan != c.getNrAlreadyScan()) {
-                    alreadyscan = c.getNrAlreadyScan();
-                    //StringBuilder data = new StringBuilder(128);
-                    //data.append("{\"current\":\"").append(c.getCurrent()).append("\",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
-                    
-                    String data="{\"current\":\""+c.getCurrent()+"\",\"current_nr\":"+alreadyscan+",\"total\":"+total+"}\n\n";
-                    // write the event type (make sure to include the double newline)
-                    writer.write("event: " + "status" + "\n\n");
-                    // write the actual data
-                    // this could be simple text or could be JSON-encoded text that the
-                    // client then decodes
-                    writer.write("data: " + data + "\n\n");
-                    // flush the buffers to make sure the container sends the bytes
-                    writer.flush();
-                    //writeEvent(response, "status", data.toString());
-                    /*try {  
+        if (task_id != null && !task_id.isEmpty()) {
+            try (database db = new database(); PrintWriter writer = response.getWriter();) {
+                Conditions c = db.getConditionFromMap(task_id, "TASKID_CONDITIONS");
+                if (c != null) {
+                    int total = c.getSites().size();
+                    int alreadyscan = c.getNrAlreadyScan();
+                    System.out.println("fatti: " + alreadyscan + "/" + total);
+                    boolean first = true;
+                    while (total != alreadyscan) {
+                        c = db.getConditionFromMap(task_id, "TASKID_CONDITIONS");
+                        //CHECK IF C IS PAUSED AND REPORT TO CLIENT oR simply not send anything
+                        if ((alreadyscan != c.getNrAlreadyScan()) || first) {
+                            alreadyscan = c.getNrAlreadyScan();
+                            //StringBuilder data = new StringBuilder(128);
+                            //data.append("{\"current\":\"").append(c.getCurrent()).append("\",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
+
+                            String data = "{\"current\":\"" + c.getCurrent() + "\",\"current_nr\":" + alreadyscan + ",\"total\":" + total + "}\n\n";
+                            // write the event type (make sure to include the double newline)
+                            writer.write("event: " + "status" + "\n\n");
+                            // write the actual data
+                            // this could be simple text or could be JSON-encoded text that the
+                            // client then decodes
+                            writer.write("data: " + data + "\n\n");
+                            // flush the buffers to make sure the container sends the bytes
+                            writer.flush();
+                            //writeEvent(response, "status", data.toString());
+                            /*try {  
                         Thread.sleep(250);
                     } catch (InterruptedException ex) {
                         System.out.println(ex.getMessage());
                     }*/
-                }
-                //System.out.println(alreadyscan + "_______________________________ "+c.getNrAlreadyScan());
-            }
+                        }
+                        first = false;
+                        //System.out.println(alreadyscan + "_______________________________ "+c.getNrAlreadyScan());
+                    }
                     writer.write("event: " + "status" + "\n\n");
                     writer.write("data: " + "{\"complete\":true}" + "\n\n");
                     writer.flush();
                     //response.flushBuffer();
-            //writeEvent(response, "status", "{\"complete\":true}");
+                    //writeEvent(response, "status", "{\"complete\":true}");
+                } else {
+                    System.out.println("No conditions found with this task_id: " + task_id); //is already stopped
+                    writer.write("event: " + "status" + "\n\n");
+                    writer.write("data: " + "{\"complete\":true}" + "\n\n");
+                    writer.flush();
+                }
+            }
         }
-        else{
-            System.out.println("No conditions found with this task_id: "+task_id);
-        }
-        }  
     }
+
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /**
      * Handles the HTTP <code>GET</code> method.
@@ -133,5 +141,4 @@ public class howMuch extends HttpServlet {
         writer.flush();
         resp.flushBuffer();
     }*/
-
 }
