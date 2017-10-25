@@ -31,16 +31,19 @@ public class mapTasks extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("application/json;charset=UTF-8");
-        try (PrintWriter out = response.getWriter(); database db=new database()) {
-            List<String> lista=db.getTasksIDFromMap("TASKID_CONDITIONS");
+        try (PrintWriter out = response.getWriter(); database db = new database()) {
+            List<String> lista = db.getTasksIDFromMap("TASKID_CONDITIONS");
             out.println("[");
-            for(int i=0;i<lista.size();i++){
+            for (int i = 0; i < lista.size(); i++) {
                 out.print("\"");
                 out.print(lista.get(i));
                 out.print("\"");
-                if(i!=lista.size()-1) out.print(",");
+                if (i != lista.size() - 1) {
+                    out.print(",");
+                }
             }
             out.println("]");
+            out.flush();
         }
     }
 
