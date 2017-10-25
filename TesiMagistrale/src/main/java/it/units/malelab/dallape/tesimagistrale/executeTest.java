@@ -44,31 +44,38 @@ public class executeTest extends Thread {
     public void run() {
         try (database db = new database()) {
             for (String s : progress.keySet()) {
-                System.out.println("For "+s+" : "+(!db.existInSitesCollections(s)));
-                System.out.println("For "+s+" : "+reanalyze);
-                if (!db.existInSitesCollections(s) || reanalyze) {
-                    if (!db.existInSTATE(s) && !s.isEmpty()) {
-                        //inserisco tutti i sites nella lista dello stato.
-                        db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", task_id));
-                    } else {
-                        System.out.println("Already exist: " + s);
+                synchronized (this) {
+                    if (con.isStopped() || con.isPaused()) {
+                        if (con.isPaused()) {
+                            db.updateValueMap(task_id, con, stato, false);
+                        }
+                        break;
+                    }
+                    if (!db.existInSitesCollections(s) || reanalyze) {
+                        if (!db.existInSTATE(s) && !s.isEmpty()) {
+                            //inserisco tutti i sites nella lista dello stato.
+                            db.getMongoDB().getCollection(ACTUAL_STATE).insertOne(new Document("site", s).append("task_id", task_id));
+                        } else {
+                            System.out.println("Already exist: " + s);
+                        }
                     }
                 }
             }
+            /*
+            //sarebbe da fare un'inizializzazione controllando in db quanti sono e nel caso aggiungendo
             long nrElement = 0;
             for (Boolean b : progress.values()) {
                 if (!b) {
                     nrElement++;
                 }
             }
-            //sarebbe da fare un'inizializzazione controllando in db quanti sono e nel caso aggiungendo
             assert (nrElement == db.howMuchRemainsInCollection("task_id", task_id, ACTUAL_STATE));
-
+             */
             for (String s : progress.keySet()) {
                 con.setCurrent(s);
                 if (!progress.get(s)) {
                     synchronized (this) {
-                        if (con.isStopped()) {
+                        if (con.isStopped() || con.isPaused()) {
                             break;
                         }
                         if ((!db.existInSitesCollections(s) || reanalyze) && !s.trim().isEmpty() && db.existInSTATE(s)) {
@@ -101,47 +108,54 @@ public class executeTest extends Thread {
                                     }
                                 }
                                 test.searchFormInThisPattern(test.listCMS());
-                                test.searchFormInLinkedPagesOfHomepage();
+                                if (!(con.isPaused() || con.isStopped())) {
+                                    test.searchFormInLinkedPagesOfHomepage();
+                                }
                                 test.quitWebDriver();
                             } else {
                                 //is unreachable, inserisco in mappa cosi
                                 System.out.println("Is Unreachable: " + s);
                             }
-                            Site site = (Site) test.getSite();
-                            site.setTASKID(task_id);
-                            site.setVisitedNow();
-                            //db.insertSite(site, NAME_COLLECTION);
-                            boolean result = db.updateSitesCollection(site);
-                            if (!result) {
-                                //o site non aveva utl (molto difficile) o replacement è fallito, in tal caso segnalo con errore
-                                if (site.getUrl() == null) {
-                                    System.out.println("CASIN BRUTTO");
-                                } else {
-                                    System.out.println("ERROR INSERTING " + site.getUrl() + "in db");
+                            if (!(con.isPaused() || con.isStopped())) {
+                                Site site = (Site) test.getSite();
+                                site.setTASKID(task_id);
+                                site.setVisitedNow();
+                                //db.insertSite(site, NAME_COLLECTION);
+                                boolean result = db.updateSitesCollection(site);
+                                if (!result) {
+                                    //o site non aveva utl (molto difficile) o replacement è fallito, in tal caso segnalo con errore
+                                    if (site.getUrl() == null) {
+                                        System.out.println("CASIN BRUTTO");
+                                    } else {
+                                        System.out.println("ERROR INSERTING " + site.getUrl() + "in db");
+                                    }
                                 }
                             }
+                        } else if (db.existInSitesCollections(s) && !reanalyze) {
+                            if (!(con.isPaused() || con.isStopped())) {
+                                Site alreadyExistent = db.getFromCollectionsSites(s);
+                                alreadyExistent.setTASKID(task_id);
+                                alreadyExistent.setVisitedNow();
+                                db.updateSitesCollection(alreadyExistent);
+                            }
                         }
-                        else if(db.existInSitesCollections(s) && !reanalyze){
-                            Site alreadyExistent= db.getFromCollectionsSites(s);
-                            alreadyExistent.setTASKID(task_id);
-                            alreadyExistent.setVisitedNow();
-                            db.updateSitesCollection(alreadyExistent);
+                        if (!(con.isPaused() || con.isStopped())) {
+                            progress.replace(s, false, true);
+                            db.updateValueMap(task_id, con, stato, false);
                         }
-                        progress.replace(s, false, true);
-                        db.updateValueMap(task_id, con, stato, false);
 
                     }
                 }
                 //tolgo dalla coda di questo task il doc perché è stato appena scansionato
-                        db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
-                        //System.out.println("Cancello " + s);
+                db.getMongoDB().getCollection(ACTUAL_STATE).deleteOne(new Document("site", s).append("task_id", task_id));
+                //System.out.println("Cancello " + s);
             }
             if (!con.isPaused()) {
                 //ho fatto tutta la lista quindi posso rimuovere i siti con quel task dalla lista (nel caso in cui il thread sia stato killato prima di rimuovere tutto)
                 db.getMongoDB().getCollection(ACTUAL_STATE).deleteMany(new Document("task_id", task_id));
                 //rimuovo l'associazione tra task_id e thread tanto ho finito
                 db.deleteTaskIDFromMap(task_id, stato);
-                //map.remove(task_id);
+                db.insertTaskID(task_id);
             } else {
                 db.updateValueMap(task_id, con, stato, false);
             }
