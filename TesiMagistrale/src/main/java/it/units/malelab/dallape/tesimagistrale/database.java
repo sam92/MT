@@ -57,6 +57,9 @@ public class database implements java.lang.AutoCloseable {
             System.out.println("Created table: " + name + " in db: " + db.getName());
         }
     }
+    public void deleteCollection(String collection){
+        db.getCollection(collection).drop();
+    }
 
     public boolean insertSite(Site a, String collection) throws MongoException {
         boolean b = collectionExist(collection);
