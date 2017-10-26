@@ -95,15 +95,15 @@ public class TestCaseImplementation implements TestCase {
                     }
                 }
                 System.out.println("Testing for list of CMS");
-                test.searchFormInThisPattern(test.listCMS());
-                Site site = (Site) test.getSite();
-                site.setTASKID(task_id);
-                site.setVisitedNow();
-                System.out.println(site.toJSONString());
+                //test.searchFormInThisPattern(test.listCMS());
+                //Site site = (Site) test.getSite();
+                //site.setTASKID(task_id);
+                //site.setVisitedNow();
+                //System.out.println(site.toJSONString());
                 System.out.println("Done");
                 System.out.println("Testing for link in homepage");
                 test.searchFormInLinkedPagesOfHomepage();
-                site = (Site) test.getSite();
+                Site site = (Site) test.getSite();
                 site.setTASKID(task_id);
                 site.setVisitedNow();
                 System.out.println(site.toJSONString());
@@ -165,7 +165,7 @@ public class TestCaseImplementation implements TestCase {
                     System.out.println("Timeout reached: " + e.getMessage());
                     try {
                         driver.get(url.getRealUrl());
-                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET * 2, TimeUnit.SECONDS);
+                        driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
                         url.setRealUrl(driver.getCurrentUrl());
                         String path = url.getRealUrl();
                         System.out.println("Url getted by driver: " + path);
@@ -212,7 +212,7 @@ public class TestCaseImplementation implements TestCase {
         if (!existForm.containsKey(url)) {
             try {
                 driver.get(url);
-                driver.manage().timeouts().implicitlyWait(SOGLIA_GET / 30, TimeUnit.SECONDS);
+                driver.manage().timeouts().implicitlyWait(SOGLIA_GET *20, TimeUnit.MILLISECONDS);
                 driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
                 String currentUrl = driver.getCurrentUrl();
                 System.out.println("Searching for Form with password in real url: " + currentUrl);
@@ -284,10 +284,17 @@ public class TestCaseImplementation implements TestCase {
     private List<String> searchAndFollowLink(WebDriver driver, Site url) {
         System.out.println("Search for link to follow in: " + url.getRealUrl());
         List<String> linkToLogin = new ArrayList<>();
+        if(!url.getRealUrl().equalsIgnoreCase("Unreachable")){
         try {
-
-            driver.get(url.getRealUrl());
-            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+            if(url.getRealUrl().trim().isEmpty()){
+                driver.get(url.getUrl());
+                driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+                url.setRealUrl(driver.getCurrentUrl());
+            }
+            else{
+                driver.get(url.getRealUrl());
+                driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+            }
             System.out.println("Get: " + driver.getCurrentUrl());
             List<WebElement> elements = new ArrayList<>();
             boolean notFinished = true;
@@ -363,14 +370,6 @@ public class TestCaseImplementation implements TestCase {
                                     }
                                 }
                             }
-                            /*String currentUrl = driver.getCurrentUrl();
-                    if (!linkToLogin.contains(currentUrl)) {
-                        linkToLogin.add(currentUrl);
-                    }
-                    System.out.println("After click on A arrived a:  " + currentUrl);
-                    driver.navigate().back();
-                    driver.manage().timeouts().pageLoadTimeout(SOGLIA_FOLLOW, TimeUnit.SECONDS);*/
-                            //((PhantomDriver) driver).waitUntilLoad(2);
                         } else {
                             //navigate
                             if (el.getTagName().contains("button")) {
@@ -438,6 +437,7 @@ public class TestCaseImplementation implements TestCase {
         }
         //System.out.println("Refreshing to: " + driver.getCurrentUrl());
         System.out.println();
+    }
         return linkToLogin;
     }
 
