@@ -6,6 +6,7 @@
 package it.units.malelab.dallape.tesimagistrale;
 
 
+import java.util.List;
 import java.util.Map;
 //import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,9 +35,18 @@ public class Config implements ServletContextListener {
         //Map<String,Thread> map=(Map<String,Thread>) context.getAttribute("map");
         //Set<String> taskNotFinished=map.keySet();
         context.removeAttribute("map");
-        //salvare la map hash-thread cioè i job che devono essere ancora completati
-        
-        //salva in db l'id request a cui sono arrivato
+        /*
+        String TASKID_CONDITIONS = "TASKID_CONDITIONS"; 
+        String ACTUAL_STATE = "STATE_LIST_SITES";
+        try(database db=new database()){
+           //quando viene tirato giù il servlet cancello tutti i job che erano in esecuzione e li inserisco nella tabella che raccoglie i job analizzati nel tempo
+           List<String> lista=db.getTasksIDFromMap(TASKID_CONDITIONS);
+           db.deleteCollection(TASKID_CONDITIONS);
+           for(String s: lista){
+               db.insertTaskID(s);
+           }
+           db.deleteCollection(ACTUAL_STATE);
+        }*/
     }
 
 }
