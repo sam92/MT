@@ -9,13 +9,9 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.Security;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  *
@@ -25,35 +21,41 @@ public class SiteImplementation implements Site {
 
     private final String url;
     private String url_after_get;
-    private boolean visited;
-    private Timestamp timestamp;
-    private final List<String[]> result;
+    //private boolean visited;
+    //private Timestamp timestamp;
+    //private final List<String[]> result;
     private String TASK_ID;
-    private List<String> scanned;
-    private int level;
+    private List<Test> listTests;
+    private double result;
+
+    /*private List<String> scanned;
+    private int level;*/
 
     public SiteImplementation(String url) throws AssertionError {
         assert !url.trim().isEmpty();
         url = sanitization(url, true);
         this.url = url;
-        result = new ArrayList<>();
+        //result = new ArrayList<>();
         TASK_ID = "";
-        visited = false;
-        scanned = new ArrayList<>();
+        //visited = false;
+        //scanned = new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
-        level = 0;
+        //level = 0;
+        listTests = new ArrayList<>();
     }
 
     public SiteImplementation(String url, String taskID) throws AssertionError {
         assert !url.trim().isEmpty();
         url = sanitization(url, true);
         this.url = url;
-        result = new ArrayList<>();
+        //result = new ArrayList<>();
         TASK_ID = taskID;
-        visited = false;
-        scanned = new ArrayList<>();
+        //visited = false;
+        //scanned = new ArrayList<>();
         url_after_get = isReachable(url) ? "" : "Unreachable";
-        level = 0;
+        //level = 0;
+        listTests = new ArrayList<>();
+
     }
 
     @Override
@@ -62,6 +64,7 @@ public class SiteImplementation implements Site {
         url_after_get = url_visited;
     }
 
+    /*
     @Override
     public void setVisitedNow() {
         visited = true;
@@ -98,16 +101,6 @@ public class SiteImplementation implements Site {
     public List<String[]> getResult() {
         return result;
     }
-
-    /*public int whereIsThisValueInsideResult(String urlpage) {
-        int res = -1;
-        for (int i = 0; i < result.size(); i++) {
-            if (result.get(i)[0].equalsIgnoreCase(urlpage)) {
-                res = i;
-            }
-        }
-        return res;
-    }
      */
     @Override
     public String getUrl() {
@@ -129,7 +122,66 @@ public class SiteImplementation implements Site {
         return TASK_ID;
     }
 
-    public void insertIntoResultValues(String location_form, String action, String link_click) {
+    @Override
+    public void insertTest(Test toBeAdded) {
+        listTests.add(toBeAdded);
+    }
+
+    @Override
+    public List<Test> getListTests() {
+        return listTests;
+    }
+
+    public List<Test> getTestWithThisName(String name) {
+        List<Test> toBeReturned = new ArrayList<>();
+        for (Test current : listTests) {
+            if (current.getName().equalsIgnoreCase(name)) {
+                toBeReturned.add(current);
+                break;
+            }
+        }
+        return toBeReturned;
+    }
+
+    public Test getRecentTest(String name) {
+        List<Test> tests = getTestWithThisName(name);
+        Test current = null;
+        if (!tests.isEmpty()) {
+            current = tests.get(0);
+            for (Test m : tests) {
+                if (m.getTimestamp().after(current.getTimestamp())) {
+                    current = m;
+                }
+            }
+        }
+        return current;
+    }
+    
+    public void setResult(double res){
+        result=res;
+    }
+    public double getResult(){
+        return result;
+    }
+    
+    public void calculateResult(List<String> nameTestToConsider){
+        List<Test> toCalculate= new ArrayList<>();
+        for(String s: nameTestToConsider){
+            if(getRecentTest(s)!=null) toCalculate.add(getRecentTest(s));
+        }
+        double res=0.0;
+        for(Test current: toCalculate){
+         res=res+current.getResult();
+        }
+        result=res/toCalculate.size();
+    }
+    
+    public void calculateResultForm(){
+        result= getRecentTest("FORM").getResult();
+    }
+
+    /*
+    private void insertIntoResultValues(String location_form, String action, String link_click) {
         location_form = sanitization(location_form, false);
         action = sanitization(action, false);
         link_click = sanitization(link_click, false);
@@ -140,7 +192,7 @@ public class SiteImplementation implements Site {
         insertIntoResult(l);
     }
 
-    public void insertIntoResult(String[] terna) throws AssertionError {
+    private void insertIntoResult(String[] terna) throws AssertionError {
         assert terna.length == 3;
         boolean alreadyExist = false;
         if (!(terna[0].trim().isEmpty() && terna[1].trim().isEmpty() && terna[2].trim().isEmpty())) {
@@ -152,20 +204,10 @@ public class SiteImplementation implements Site {
                     alreadyExist = true;
                 }
             }
-            if (!alreadyExist) {
-                result.add(terna);
-                if (!(terna[0].startsWith("https") && terna[1].startsWith("https") && terna[2].startsWith("https"))) {
-                    if (!(terna[0].startsWith("http") && terna[1].startsWith("http") && terna[2].startsWith("http"))) {
-                        if(level<2) level = 1;
-                    } else {
-                        level = 2;
-                    }
-                }
-            }
         }
     }
 
-    public boolean existIntoResult(String[] terna) {
+    private boolean existIntoResult(String[] terna) {
         assert terna.length == 3;
         boolean exist = false;
         for (String a : terna) {
@@ -179,7 +221,7 @@ public class SiteImplementation implements Site {
         return exist;
     }
 
-    public boolean alreadyFindInUrlOrFormLocation(String value) {
+    private boolean alreadyFindInUrlOrFormLocation(String value) {
         boolean exist = false;
         value = sanitization(value, false);
         for (String[] current : result) {
@@ -220,10 +262,10 @@ public class SiteImplementation implements Site {
             list.add(w);
         }
         if (url != null) {
-            json.put("url_site", url);
+            json.put("url", url);
         }
         if (url_after_get != null) {
-            json.put("url_site_true", url_after_get);
+            json.put("url_true", url_after_get);
         }
         if (TASK_ID != null) {
             json.put("task_id", TASK_ID);
@@ -231,9 +273,6 @@ public class SiteImplementation implements Site {
         json.put("visited", visited);
         if (timestamp != null) {
             json.put("timestamp", timestamp.toString());
-        }
-        if (level>=0) {
-            json.put("level", level);
         }
         json.put("result", new JSONArray(list));
         return json;
@@ -252,7 +291,7 @@ public class SiteImplementation implements Site {
             site.setRealUrl("");
         }
         try {
-            site.setTimestamp(Timestamp.valueOf(json.getString("timestamp")));
+            //site.setTimestamp(Timestamp.valueOf(json.getString("timestamp")));
             site.setTASKID(json.getString("task_id"));
         } catch (JSONException e) {
             System.out.println(e.getMessage());
@@ -265,20 +304,10 @@ public class SiteImplementation implements Site {
             }
         }
         return site;
-    }
-
+    }*/
     @Override
     public String toJSONString() {
-        return this.toJSON().toString();
-    }
-
-    @Override
-    public String toString() {
-        String a = "URL: " + url + "\n" + "URL_GET: " + url_after_get + "\n" + "VISITED: " + visited + "\n" + "TIME: " + timestamp + "\n" + "TASK_ID: " + TASK_ID + "\n\n";
-        for (String[] s : result) {
-            a = a + "WHERE_FORM: " + s[0] + "\n" + "ACTION: " + s[1] + "\n" + "LINKED FROM: " + s[2] + "\n\n";
-        }
-        return a;
+        return this.toDocument().toJson();
     }
 
     @Override
@@ -306,41 +335,43 @@ public class SiteImplementation implements Site {
     @Override
     public Document toDocument() {
         List<Document> list = new ArrayList<>();
-        for (String[] current : result) {
+        /*for (String[] current : result) {
             Document w = new Document().append("link_click", current[2]).append("action", current[1]).append("location_form", current[0]);
             list.add(w);
+        }*/
+        for (Test t : listTests) {
+            list.add(t.toDocument());
         }
-        Document doc = new Document("url_site", url).append("url_site_true", url_after_get).append("level",level).append("task_id", TASK_ID).append("visited", visited).append("timestamp", timestamp.toString()).append("result", list);
+        Document doc = new Document("url", url).append("url_true", url_after_get).append("task_id", TASK_ID).append("result",result).append("tests", list);
         //Document doc = new Document("$push", new Document("result", new Document("timestamp", timestamp).append("url_finded", new JSONArray(list))));
         return doc;
     }
 
     public static Site fromDocument(Document d) {
-        Site s = new SiteImplementation(d.getString("url_site"));
-        if (d.getString("url_site_true") != null) {
-            s.setRealUrl(d.getString("url_site_true"));
+        Site s = new SiteImplementation(d.getString("url"));
+        if (d.getString("url_true") != null) {
+            s.setRealUrl(d.getString("url_true"));
         }
         if (d.getString("task_id") != null) {
             s.setTASKID(d.getString("task_id"));
         }
-        if (d.getBoolean("visited") != null) {
+        /*if (d.getBoolean("visited") != null) {
             s.setVisited(d.getBoolean("visited"));
         }
         if (d.getString("timestamp") != null) {
             s.setTimestamp(Timestamp.valueOf(d.getString("timestamp")));
-        }
-        if (d.get("result") != null) {
-            List<Document> result1 = (List<Document>) d.get("result");
-            String[] current = new String[3];
-            for (Document doc : result1) {
-                current[0] = doc.getString("location_form");
-                current[1] = doc.getString("action");
-                current[2] = doc.getString("link_click");
-                ((SiteImplementation) s).insertIntoResult(current);
+        }*/
+        if (d.get("tests") != null) {
+            List<Document> result = (List<Document>) d.get("tests");
+            //String[] current = new String[3];
+            for (Document doc : result) {
+                //current[0] = doc.getString("location_form");
+                //current[1] = doc.getString("action");
+                //current[2] = doc.getString("link_click");
+                //((SiteImplementation) s).insertIntoResult(current);
+                s.insertTest(TestFormImplementation.fromDocument(doc, s));
+
             }
-        }
-        if (d.getInteger("level") != null) {
-            assert(d.getInteger("level")==((SiteImplementation)s).getLevel());
         }
         return s;
     }
