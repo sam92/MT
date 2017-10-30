@@ -15,29 +15,27 @@ package it.units.malelab.dallape.tesimagistrale;
  * and open the template in the editor.
  */
 
-import java.sql.Timestamp;
+import java.util.List;
 import org.bson.Document;
 
 public interface Site {
 
     public void setRealUrl(String url_visited);
-
+/*
     public void setVisitedNow();
     public void setVisitedWhen(boolean value, Timestamp now);
 
     public void setVisited(boolean value);
 
     public boolean isVisited();
+*/
     public boolean isUnreachable();
-
-    public void setTimestamp();
-
-    public void setTimestamp(Timestamp now);
 
     public String getUrl();
     public void setTASKID(String task_id);
     public String getTASKID();
-
+    public void insertTest(Test t);
+    public List<Test> getListTests();
     public String getRealUrl();
     public String toJSONString();
     public Document toDocument();
