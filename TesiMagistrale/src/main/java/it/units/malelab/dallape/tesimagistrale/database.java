@@ -12,9 +12,7 @@ package it.units.malelab.dallape.tesimagistrale;
 import com.mongodb.*;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
-import com.mongodb.client.model.InsertOneOptions;
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
@@ -77,7 +75,7 @@ public class database implements java.lang.AutoCloseable {
         boolean b = true;
         if (a.getUrl() != null) {//to avoid error
             //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
-            Document doc = db.getCollection(COLLECTION_SITES).findOneAndReplace(new Document("url_site", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
+            Document doc = db.getCollection(COLLECTION_SITES).findOneAndReplace(new Document("url", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
             /*if (doc == null) {
                 b = false;
             }*/ //se non c'è lo inserisco e quindi doc==null potrebbe essere che viene inserito lo stesso
@@ -106,7 +104,7 @@ public class database implements java.lang.AutoCloseable {
     }
 
     public boolean existInSitesCollections(String url) {
-        return db.getCollection(COLLECTION_SITES).find(new Document("url_site", url.trim())).first() != null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
+        return db.getCollection(COLLECTION_SITES).find(new Document("url", url.trim())).first() != null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
     }
 
     public boolean existInSTATE(String site) {
@@ -114,7 +112,7 @@ public class database implements java.lang.AutoCloseable {
     }
 
     public Site getFromCollectionsSites(String name) {
-        return SiteImplementation.fromDocument(db.getCollection(COLLECTION_SITES).find(new Document("url_site", name)).first());
+        return SiteImplementation.fromDocument(db.getCollection(COLLECTION_SITES).find(new Document("url", name)).first());
     }
 
     public List<Site> getDocuments(String task_id) {
