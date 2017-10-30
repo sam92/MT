@@ -40,7 +40,7 @@ public class getResult extends HttpServlet {
                //se task_id è presente restituisco solo le cose con questo task_id
             }
             List<Site> lista=db.getDocuments(task_id);
-
+            out.println(")]}',"); //for security reason, angularjs ignore that
             out.println("[");
             for(int i=0;i<lista.size();i++){
                 out.print(lista.get(i).toJSONString());
