@@ -5,12 +5,22 @@
  */
 package it.units.malelab.dallape.tesimagistrale;
 
+import java.sql.Timestamp;
+import org.bson.Document;
+
 
 /**
  *
  * @author Samuele
  */
 public interface Test {
+    public String getName();
     public double getResult();
     public Object getDetails();
+    public String getDescription();
+    public Timestamp getTimestamp(); 
+    public void setTaskID(String id);
+    public String getTaskID();
+    public String toJSON();
+    public Document toDocument();
 }
