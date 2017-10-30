@@ -79,48 +79,52 @@ public class executeTest extends Thread {
                             break;
                         }
                         if ((!db.existInSitesCollections(s) || reanalyze) && !s.trim().isEmpty() && db.existInSTATE(s)) {
-                            TestCase test = new TestCaseImplementation(s);
-                            if (!((SiteImplementation) test.getSite()).isUnreachable()) {
+                            Site site=new SiteImplementation(s);
+                            TestForm formTest = new TestFormImplementation(site,task_id);
+                            if (!site.isUnreachable()) {
                                 if (whatTest.size() >= 6 && (whatTest.contains("wordpress") || whatTest.contains("joomla") || whatTest.contains("plone") || whatTest.contains("drupal") || whatTest.contains("typo3"))) {
-                                    test.testAll();
+                                    formTest.testAllCMS();
                                 } else {
-                                    test.testHomepage();
+                                    formTest.testHomepage();
                                     for (String current : whatTest) {
                                         switch (current) {
                                             case "wordpress":
-                                                test.testWordpress();
+                                                formTest.testWordpress();
                                                 break;
                                             case "joomla":
-                                                test.testJoomla();
+                                                formTest.testJoomla();
                                                 break;
                                             case "plone":
-                                                test.testPlone();
+                                                formTest.testPlone();
                                                 break;
                                             case "typo3":
-                                                test.testTypo3();
+                                                formTest.testTypo3();
                                                 break;
                                             case "drupal":
-                                                test.testDrupal();
+                                                formTest.testDrupal();
                                                 break;
                                             default:
                                                 break;
                                         }
                                     }
                                 }
-                                test.searchFormInThisPattern(test.listCMS());
+                                formTest.start();
+                                site.insertTest(formTest);
+                                /*
+                                formTest.searchFormInThesePaths(formTest.listCMS());
                                 if (!(con.isPaused() || con.isStopped())) {
-                                    test.searchFormInLinkedPagesOfHomepage();
-                                }
-                                test.quitWebDriver();
+                                    formTest.searchFormInLinkedPagesOfHomepage();
+                                }*/
+                                Test contactsTest= new TestContacts(site,formTest.getWebDriver() ,task_id);
+                                site.insertTest(contactsTest);
+                                formTest.quitWebDriver();
                             } else {
                                 //is unreachable, inserisco in mappa cosi
                                 System.out.println("Is Unreachable: " + s);
                             }
                             if (!(con.isPaused() || con.isStopped())) {
-                                Site site = (Site) test.getSite();
-                                site.setTASKID(task_id);
-                                site.setVisitedNow();
-                                //db.insertSite(site, NAME_COLLECTION);
+                                //site.setTASKID(task_id);
+                                //site.setVisitedNow();
                                 boolean result = db.updateSitesCollection(site);
                                 if (!result) {
                                     //o site non aveva utl (molto difficile) o replacement è fallito, in tal caso segnalo con errore
@@ -134,8 +138,8 @@ public class executeTest extends Thread {
                         } else if (db.existInSitesCollections(s) && !reanalyze) {
                             if (!(con.isPaused() || con.isStopped())) {
                                 Site alreadyExistent = db.getFromCollectionsSites(s);
-                                alreadyExistent.setTASKID(task_id);
-                                alreadyExistent.setVisitedNow();
+                                //alreadyExistent.setTASKID(task_id);
+                                //alreadyExistent.setVisitedNow();
                                 db.updateSitesCollection(alreadyExistent);
                             }
                         }
