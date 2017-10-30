@@ -505,6 +505,7 @@ public class TestFormImplementation implements TestForm {
         }
     }
 
+    @Override
      public void start(){
          searchFormInThesePaths(this.listCMS());
          searchFormInLinkedPagesOfHomepage();
