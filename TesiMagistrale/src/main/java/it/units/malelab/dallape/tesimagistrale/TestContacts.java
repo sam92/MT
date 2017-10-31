@@ -74,8 +74,8 @@ public class TestContacts implements Test {
             current.setTASKID(id);
         }
     }
-
-    public void searchEmail() {
+    @Override
+    public void start() {
         if (!current.getRealUrl().equalsIgnoreCase("Unreachable") || wb != null) {
             List<String> listaLink = searchAndFollowLink(wb, current);
             for (String currentString : listaLink) {
@@ -93,12 +93,14 @@ public class TestContacts implements Test {
 
     private void searchForEmailInThisPage(WebDriver driver, String url) {
         url = SiteImplementation.sanitization(url, true);
-        System.out.println("Searching for forms in: " + url);
+        System.out.println("Searching for email in: " + url);
         boolean exist = false;
         try {
-            driver.get(url);
-            driver.manage().timeouts().implicitlyWait(SOGLIA_IMPLICIT * 400, TimeUnit.MILLISECONDS);
-            driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+            if(!SiteImplementation.sanitization(driver.getCurrentUrl(),false).equals(current.getRealUrl())){
+                driver.get(url);
+                driver.manage().timeouts().implicitlyWait(SOGLIA_IMPLICIT * 400, TimeUnit.MILLISECONDS);
+                driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+            }
             String currentUrl = driver.getCurrentUrl();
             System.out.print("Searching for Email in real url " + currentUrl + " : ");
             List<WebElement> elements = driver.findElements(By.tagName("a"));
@@ -110,29 +112,34 @@ public class TestContacts implements Test {
                     text = el.getAttribute("href");
                     if (text.startsWith("mailto")) {
                         Matcher m = pattern.matcher(text); //qua si potrebbe anche fare una substring
-                        if(!listEmail.contains(m.group())) listEmail.add(m.group());
-                        exist = true;
-                    } else {
-                        text = el.getText();
+                        if(m.matches() && !listEmail.contains(m.group())){
+                            listEmail.add(m.group());
+                            exist = true;
+                        }
+                        
+                    }/* else {
+                        text=el.getAttribute("innerText");
                         Matcher m = pattern.matcher(text);
                         if (m.matches()) {
+                            System.out.println(text);
                             if(!listEmail.contains(m.group())) listEmail.add(m.group());
                             exist = true;
                         }
-                    }
+                    }*/
                 }
             }
             if (!exist) {
-                for (String s : new String[]{"div", "span", "p"}) {
+                for (String s : new String[]{"span", "p"}) {
                     elements = driver.findElements(By.tagName(s));
                     for (WebElement el : elements) { //cerco in tutti i div
                         String text;
                         if (el.isDisplayed()) {
-                            text = el.getText();
+                            //text = el.getText();
+                            text=el.getAttribute("innerText");
                             Matcher m = pattern.matcher(text);
-                            if (m.matches()) {
+                            while(m.find()){
                                 if(!listEmail.contains(m.group())) listEmail.add(m.group());
-                                exist = true;
+                                exist=true;
                             }
                         }
                     }
@@ -146,8 +153,9 @@ public class TestContacts implements Test {
         } catch (TimeoutException e) {
             System.out.println("Timeout reached: " + e.getMessage());
         } catch (org.openqa.selenium.StaleElementReferenceException ex) {
+            System.out.println("Stale Reference Exception");
             if (SOGLIA_IMPLICIT < SOGLIA_FOLLOW) {
-                SOGLIA_IMPLICIT = SOGLIA_IMPLICIT * 2;
+                SOGLIA_IMPLICIT = SOGLIA_IMPLICIT * 10;
                 searchForEmailInThisPage(driver, url);
             }
             System.out.println(ex.getMessage());
@@ -330,6 +338,9 @@ public class TestContacts implements Test {
         nameLogin.add("Contattaci");
         nameLogin.add("Contacts");
         nameLogin.add("contacts");
+        nameLogin.add("contact");
+        nameLogin.add("Contact");
+        nameLogin.add("contact us");
         return nameLogin;
     }
 
@@ -342,23 +353,32 @@ public class TestContacts implements Test {
         rate=-2 Not Applicable Sito Unreachable
          */
         double rate;
-        List<String[]> result = (List<String[]>) this.getDetails();
+        List<String> result = (List<String>) this.getDetails();
         if (current.isUnreachable()) {
             rate = -2.0;
         } else if (result.isEmpty()) {
-            rate = 0.0;
+            rate = -1.0;
         } else {
-            double value = 0.0;
-            double total = result.size();
-            for (String[] el : result) {
-                if (el[0].startsWith("https") && el[1].startsWith("https")) {
-                    value = value + 1.0;
+            boolean adminContact=false;
+            List<String> webMasterContacts=new ArrayList<>();
+            webMasterContacts.add("admin");
+            webMasterContacts.add("webmaster");
+            webMasterContacts.add("info");
+            webMasterContacts.add("help");  
+            for(String s: result){
+                for(String contact: webMasterContacts){
+                    if(s.contains(contact)){
+                        adminContact=true;
+                        break;
+                    }
                 }
+                if(adminContact) break;
             }
-            if (value == 0.0) {
-                rate = -1; //tutti i form che ho trovato sono in http
-            } else {
-                rate = value / total;
+            if(adminContact){
+                    rate=1.0;
+                }
+            else{
+                rate=0.0;
             }
         }
         System.out.println("RESULT= " + rate);
@@ -367,6 +387,7 @@ public class TestContacts implements Test {
 
     @Override
     public Object getDetails() {
+        for(String s : listEmail) System.out.println(s);
         return listEmail;
     }
 
