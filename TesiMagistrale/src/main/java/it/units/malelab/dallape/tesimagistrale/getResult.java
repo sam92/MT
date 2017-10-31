@@ -7,6 +7,7 @@ package it.units.malelab.dallape.tesimagistrale;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -31,20 +32,40 @@ public class getResult extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("application/json;charset=UTF-8");
-        try (PrintWriter out = response.getWriter(); database db=new database()) {
+        try (PrintWriter out = response.getWriter(); database db = new database()) {
             String task_id = request.getParameter("task_id");
-            
-            if(task_id==null || task_id.trim().isEmpty()){
+
+            if (task_id == null || task_id.trim().isEmpty()) {
                 //restituisco tutto il db come json
-               task_id="";
-               //se task_id è presente restituisco solo le cose con questo task_id
+                task_id = "";
+                //se task_id è presente restituisco solo le cose con questo task_id
             }
-            List<Site> lista=db.getDocuments(task_id);
+            List<Site> lista = db.getDocuments(task_id);
+            List<Site> newLista = new ArrayList<>();
+            if (task_id.isEmpty()) {
+                List<String> test = new ArrayList<>();
+                test.add("WEIGHT");
+                test.add("FORM");
+                test.add("CONTACTS");
+                for (Site s : lista) {
+                    newLista.add(((SiteImplementation) s).getSiteFiltered(test));
+                }
+                lista = newLista;
+            }
+            else{
+                for (Site s : lista) {
+                    newLista.add(((SiteImplementation) s).getSiteFiltered(task_id));
+                }
+                lista = newLista;
+            }
+            
             out.println(")]}',"); //for security reason, angularjs ignore that
             out.println("[");
-            for(int i=0;i<lista.size();i++){
+            for (int i = 0; i < lista.size(); i++) {
                 out.print(lista.get(i).toJSONString());
-                if(i!=lista.size()-1) out.print(",");
+                if (i != lista.size() - 1) {
+                    out.print(",");
+                }
             }
             out.println("]");
             out.flush();
