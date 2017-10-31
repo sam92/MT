@@ -312,7 +312,7 @@ public class SiteImplementation implements Site {
 
     @Override
     public boolean isUnreachable() {
-        return "Unreachable".equals(url_after_get);
+        return url_after_get.equalsIgnoreCase("Unreachable");
     }
 
     public static boolean isReachable(String url) {
