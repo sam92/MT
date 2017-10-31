@@ -94,7 +94,7 @@ public class TestFormImplementation implements TestForm {
                 }
                 //formTest.start();
                 //site.insertTest(formTest);
-                Test contactsTest = new TestContacts(site, formTest.getWebDriver(), task_id);
+                Test contactsTest = new TestContactsImplementation(site, formTest.getWebDriver(), task_id);
                 contactsTest.start();
                 site.insertTest(contactsTest);
                 formTest.quitWebDriver();
@@ -136,6 +136,7 @@ public class TestFormImplementation implements TestForm {
             //wb.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
         }*/
         timestamp = new Timestamp(System.currentTimeMillis());
+        this.id=id;
         current.setTASKID(id);
     }
 
@@ -722,7 +723,7 @@ public class TestFormImplementation implements TestForm {
         assert s != null && d.getString("task_id") != null;
         TestFormImplementation test = new TestFormImplementation(s, null, d.getString("task_id"));
         if (d.getString("name") != null) {
-            s.setRealUrl(d.getString("url_true"));
+            s.setRealUrl(d.getString("name"));
         }
         if (d.getString("timestamp") != null) {
             test.setTimestamp(Timestamp.valueOf(d.getString("timestamp")));
