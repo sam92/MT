@@ -158,53 +158,53 @@ public class database implements java.lang.AutoCloseable {
         return db.getCollection(collection).count(new Document(key, value));
     }
 
-    public void insertValueMap(String key, Conditions con, String collection) {
-        if (!this.collectionExist(collection)) {
-            db.createCollection(collection);
+    public void insertValueMap(String key, Conditions con) {
+        if (!this.collectionExist(TASKID_CONDITIONS)) {
+            db.createCollection(TASKID_CONDITIONS);
         }
-        Document document = db.getCollection(collection).find(new Document("task_id", key)).first();
+        Document document = db.getCollection(TASKID_CONDITIONS).find(new Document("task_id", key)).first();
         if (document == null) {
             document = new Document("task_id", key).append("value", con.toDocument());
-            db.getCollection(collection).insertOne(document);
+            db.getCollection(TASKID_CONDITIONS).insertOne(document);
         }
 
     }
 
-    public void updateValueMap(String key, Conditions con, String collection, boolean insertIfNotExixst) {
-        if (!this.collectionExist(collection)) {
-            db.createCollection(collection);
+    public void updateValueMap(String key, Conditions con, boolean insertIfNotExixst) {
+        if (!this.collectionExist(TASKID_CONDITIONS)) {
+            db.createCollection(TASKID_CONDITIONS);
         }
-        Document document = db.getCollection(collection).find(new Document("task_id", key)).first();
+        Document document = db.getCollection(TASKID_CONDITIONS).find(new Document("task_id", key)).first();
         if (document == null && insertIfNotExixst) {
             document = new Document("task_id", key).append("value", con.toDocument());
-            db.getCollection(collection).insertOne(document);
+            db.getCollection(TASKID_CONDITIONS).insertOne(document);
         } else {
             //https://stackoverflow.com/questions/29434207/mongodb-update-using-java-3-driver
             //db.getCollection(collection).updateOne(document, new Document("task_id", key).append("value",con.toDocument()));
-            db.getCollection(collection).findOneAndReplace(document, new Document("task_id", key).append("value", con.toDocument()));
+            db.getCollection(TASKID_CONDITIONS).findOneAndReplace(document, new Document("task_id", key).append("value", con.toDocument()));
         }
 
     }
 
-    public Conditions getConditionFromMap(String task_id, String collection) {
-        if (!this.collectionExist(collection)) {
-            db.createCollection(collection);
+    public Conditions getConditionFromMap(String task_id) {
+        if (!this.collectionExist(TASKID_CONDITIONS)) {
+            db.createCollection(TASKID_CONDITIONS);
         }
         Conditions con = null;
-        Document document = db.getCollection(collection).find(new Document("task_id", task_id)).first();
+        Document document = db.getCollection(TASKID_CONDITIONS).find(new Document("task_id", task_id)).first();
         if (document != null) {
             con = Conditions.fromJSON(((Document) document.get("value")).toJson());
         }
         return con;
     }
 
-    public List<String> getTasksIDFromMap(String collection) {
-        if (!this.collectionExist(collection)) {
-            db.createCollection(collection);
+    public List<String> getTasksIDFromMap() {
+        if (!this.collectionExist(TASKID_CONDITIONS)) {
+            db.createCollection(TASKID_CONDITIONS);
         }
         List<String> lista = new ArrayList<>();
-        long length = db.getCollection(collection).count();
-        List<Document> docs = (List<Document>) db.getCollection(collection).find().sort(new Document("_id", -1));
+        long length = db.getCollection(TASKID_CONDITIONS).count();
+        List<Document> docs = (List<Document>) db.getCollection(TASKID_CONDITIONS).find().sort(new Document("_id", -1));
         for (Document d : docs) {
             lista.add(d.getString("task_id"));
         }
@@ -212,17 +212,27 @@ public class database implements java.lang.AutoCloseable {
         return lista;
     }
 
-    public Conditions deleteTaskIDFromMap(String task_id, String collection) {
-        if (!this.collectionExist(collection)) {
-            db.createCollection(collection);
+    public Conditions deleteTaskIDFromMap(String task_id) {
+        if (!this.collectionExist(TASKID_CONDITIONS)) {
+            db.createCollection(TASKID_CONDITIONS);
         }
         Conditions con = null;
-        Document document = db.getCollection(collection).find(new Document("task_id", task_id)).first();
+        Document document = db.getCollection(TASKID_CONDITIONS).find(new Document("task_id", task_id)).first();
         if (document != null) {
             // no test document, let's create one!
             con = Conditions.fromJSON(((Document) document.get("value")).toJson());
-            db.getCollection(collection).deleteOne(document);
+            db.getCollection(TASKID_CONDITIONS).deleteOne(document);
         }
         return con;
+    }
+    
+    public void deleteOneFromState(String site, String task_id){
+        db.getCollection(ACTUAL_STATE).deleteOne(new Document("site", site).append("task_id", task_id));
+    }
+    public void deleteManyFromState(String task_id){
+        db.getCollection(ACTUAL_STATE).deleteMany(new Document("task_id", task_id));
+    }
+    public void insertOneInState(String site, String task_id){
+        db.getCollection(ACTUAL_STATE).insertOne(new Document("site", site).append("task_id", task_id));
     }
 }
