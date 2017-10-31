@@ -9,7 +9,6 @@ package it.units.malelab.dallape.tesimagistrale;
  *
  * @author Samuele
  */
-import static it.units.malelab.dallape.tesimagistrale.SiteImplementation.sanitization;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +24,7 @@ public class TestFormImplementation implements TestForm {
         List<String> sites = new ArrayList<>();
         //sites.add("www.trieste6.net");
         //sites.add("www.trieste2.it");
-        sites.add("www.agi.it");
+        //sites.add("www.agi.it");
         sites.add("http://www.regione.fvg.it");
         /*sites.add("www.uslumbria1.gov.it");
         sites.add("www.uslumbria2.it");
@@ -65,43 +64,41 @@ public class TestFormImplementation implements TestForm {
         String task_id = sites.size() + "" + sites.hashCode();
         for (String s : sites) {
             Site site = new SiteImplementation(s);
-            TestForm test = new TestFormImplementation(site,task_id);
+            TestForm formTest = new TestFormImplementation(site, task_id);
             if (!site.isUnreachable()) {
                 if (whatTest.size() >= 6 && (whatTest.contains("wordpress") || whatTest.contains("joomla") || whatTest.contains("plone") || whatTest.contains("drupal") || whatTest.contains("typo3"))) {
-                    test.testAllCMS();
+                    formTest.testAllCMS();
                 } else {
-                    test.testHomepage();
+                    formTest.testHomepage();
                     for (String current : whatTest) {
                         switch (current) {
                             case "wordpress":
-                                test.testWordpress();
+                                formTest.testWordpress();
                                 break;
                             case "joomla":
-                                test.testJoomla();
+                                formTest.testJoomla();
                                 break;
                             case "plone":
-                                test.testPlone();
+                                formTest.testPlone();
                                 break;
                             case "typo3":
-                                test.testTypo3();
+                                formTest.testTypo3();
                                 break;
                             case "drupal":
-                                test.testDrupal();
+                                formTest.testDrupal();
                                 break;
                             default:
                                 break;
                         }
                     }
                 }
-                System.out.println("Testing for list of CMS");
-                test.searchFormInThesePaths(test.listCMS());
-                System.out.println("Done");
-                System.out.println("Testing for link in homepage");
-                test.searchFormInLinkedPagesOfHomepage();
+                //formTest.start();
+                //site.insertTest(formTest);
+                Test contactsTest = new TestContacts(site, formTest.getWebDriver(), task_id);
+                contactsTest.start();
+                site.insertTest(contactsTest);
+                formTest.quitWebDriver();
                 System.out.println(site.toJSONString());
-                System.out.println("Done");
-                test.quitWebDriver();
-
             } else {
                 System.out.println("Already exist: " + s);
             }
@@ -119,26 +116,27 @@ public class TestFormImplementation implements TestForm {
     private String id;
     private List<String[]> result_;
     private String info = "Vengono cercati tutti i form di login nella pagina e nei link della pagina.\n"
-                + "result=1 Good. All forms found are in https \n"
-                + "        result=0 Unknow (Not Found Form)\n"
-                + "        result=-1 Bad. Found Form taken by http or form with http action\n"
-                + "        result=-2 Not Applicable. Sito Unreachable\n"
-                + "        0<result<1 Not Good at all. Result is the % of form in https. This means that there are forms taken by http (or with http action)\n";;
+            + "result=1 Good. All forms found are in https \n"
+            + "        result=0 Unknow (Not Found Form)\n"
+            + "        result=-1 Bad. Found Form taken by http or form with http action\n"
+            + "        result=-2 Not Applicable. Sito Unreachable\n"
+            + "        0<result<1 Not Good at all. Result is the % of form in https. This means that there are forms taken by http (or with http action)\n";
+
+    ;
 
     public TestFormImplementation(Site site, String id) {
         current = site;
         testCMS = new ArrayList<>();
         existForm = new HashMap<>();
-        result_=new ArrayList<>();
+        result_ = new ArrayList<>();
         //System.out.println("Url getted by ping: " + current.getRealUrl());
         wb = (!site.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
         /*if (wb != null) {
             //wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
             //wb.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
         }*/
-        timestamp=new Timestamp(System.currentTimeMillis());
-        this.id=id;
-        if(site!=null) current.setTASKID(id);
+        timestamp = new Timestamp(System.currentTimeMillis());
+        current.setTASKID(id);
     }
 
     public TestFormImplementation(Site url, WebDriver webDriv, String id) {
@@ -148,14 +146,17 @@ public class TestFormImplementation implements TestForm {
         //wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         testCMS = new ArrayList<>();
         existForm = new HashMap<>();
-        result_=new ArrayList<>();
+        result_ = new ArrayList<>();
         //existJSForm = new HashMap<>();
-        timestamp=new Timestamp(System.currentTimeMillis());
-        this.id=id;
-        if(url!=null) current.setTASKID(id);
+        timestamp = new Timestamp(System.currentTimeMillis());
+        this.id = id;
+        if (url != null) {
+            current.setTASKID(id);
+        }
     }
 
     private void searchLogin(WebDriver driver, Site url, boolean cmsTest, List<String> listCMS) {
+        if(url.getRealUrl().equalsIgnoreCase("about:blank") || url.getRealUrl().equalsIgnoreCase("http://about:blank")) url.setRealUrl("Unreachable");
         if (!url.getRealUrl().equalsIgnoreCase("Unreachable") || driver != null) {
             boolean go = true;
             if (url.getRealUrl().equalsIgnoreCase("") || cmsTest) {
@@ -441,9 +442,9 @@ public class TestFormImplementation implements TestForm {
                     boolean exist = false;
                     for (String[] duo : tmp) {
                         s = SiteImplementation.sanitization(s, false);
-                            if (duo[0].equalsIgnoreCase(s) || duo[1].equalsIgnoreCase(s) || duo[2].equalsIgnoreCase(s)) {
-                                exist = true;
-                            }
+                        if (duo[0].equalsIgnoreCase(s) || duo[1].equalsIgnoreCase(s) || duo[2].equalsIgnoreCase(s)) {
+                            exist = true;
+                        }
                     }
                     if (exist) {
                         linkToLogin.remove(s);
@@ -506,11 +507,11 @@ public class TestFormImplementation implements TestForm {
     }
 
     @Override
-     public void start(){
-         searchFormInThesePaths(this.listCMS());
-         searchFormInLinkedPagesOfHomepage();
-     }
-     
+    public void start() {
+        searchFormInThesePaths(this.listCMS());
+        searchFormInLinkedPagesOfHomepage();
+    }
+
     @Override
     public List<String> listCMS() {
         return testCMS;
@@ -654,32 +655,43 @@ public class TestFormImplementation implements TestForm {
             System.out.println(s[2]);
             System.out.println();
         }
-        if(result.size()<=result_.size()) result_=result;
+        if (result.size() <= result_.size()) {
+            result_ = result;
+        }
         return result;
     }
-public void setResult_(List<String[]> lista){
-    result_=lista;
-}
+
+    public void setResult_(List<String[]> lista) {
+        result_ = lista;
+    }
+
     @Override
     public String getDescription() {
         return info;
     }
 
-    public void setDescription(String info, boolean append){
-        if(append) this.info=this.info+info;
-        else this.info=info;
+    public void setDescription(String info, boolean append) {
+        if (append) {
+            this.info = this.info + info;
+        } else {
+            this.info = info;
+        }
     }
+
     @Override
     public String getName() {
         return "FORM";
     }
+
     @Override
-    public Timestamp getTimestamp(){
+    public Timestamp getTimestamp() {
         return timestamp;
     }
-public void setTimestamp(Timestamp t){
-        timestamp=t;
+
+    public void setTimestamp(Timestamp t) {
+        timestamp = t;
     }
+
     @Override
     public String toJSON() {
         return this.toDocument().toJson();
@@ -688,16 +700,16 @@ public void setTimestamp(Timestamp t){
     @Override
     public Document toDocument() {
         List<Document> list = new ArrayList<>();
-        for (String[] terna : (List<String[]>)getDetails()) {
+        for (String[] terna : (List<String[]>) getDetails()) {
             Document w = new Document().append("link_click", terna[2]).append("action", terna[1]).append("location_form", terna[0]);
             list.add(w);
         }
-       return new Document("name", getName()).append("timestamp", timestamp.toString()).append("task_id", id).append("info", info).append("result",getResult()).append("details", list);
+        return new Document("name", getName()).append("timestamp", timestamp.toString()).append("task_id", id).append("info", info).append("result", getResult()).append("details", list);
     }
 
     @Override
     public void setTaskID(String id) {
-        this.id=id;
+        this.id = id;
         current.setTASKID(id);
     }
 
@@ -705,9 +717,10 @@ public void setTimestamp(Timestamp t){
     public String getTaskID() {
         return id;
     }
-    public static Test fromDocument(Document d, Site s){
-        assert s!=null && d.getString("task_id")!=null;
-        TestFormImplementation test = new TestFormImplementation(s,null,d.getString("task_id"));
+
+    public static Test fromDocument(Document d, Site s) {
+        assert s != null && d.getString("task_id") != null;
+        TestFormImplementation test = new TestFormImplementation(s, null, d.getString("task_id"));
         if (d.getString("name") != null) {
             s.setRealUrl(d.getString("url_true"));
         }
@@ -715,13 +728,13 @@ public void setTimestamp(Timestamp t){
             test.setTimestamp(Timestamp.valueOf(d.getString("timestamp")));
         }
         if (d.getString("info") != null) {
-            test.setDescription(d.getString("info"),false);
+            test.setDescription(d.getString("info"), false);
         }
-        List<String[]> result_=new ArrayList<>();
+        List<String[]> result_ = new ArrayList<>();
         if (d.get("details") != null) {
             List<Document> result = (List<Document>) d.get("details");
             for (Document doc : result) {
-                result_.add(new String[]{doc.getString("location_form"),doc.getString("action"),doc.getString("link_click")});
+                result_.add(new String[]{doc.getString("location_form"), doc.getString("action"), doc.getString("link_click")});
             }
             test.setResult_(result_);
         }
