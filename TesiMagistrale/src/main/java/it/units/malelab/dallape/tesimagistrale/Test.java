@@ -23,4 +23,5 @@ public interface Test {
     public String getTaskID();
     public String toJSON();
     public Document toDocument();
+    public void start();
 }
