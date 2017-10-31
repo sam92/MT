@@ -55,10 +55,12 @@ public class database implements java.lang.AutoCloseable {
             System.out.println("Created table: " + name + " in db: " + db.getName());
         }
     }
-    public void deleteCollection(String collection){
+
+    public void deleteCollection(String collection) {
         db.getCollection(collection).drop();
     }
 
+    /*
     public boolean insertSite(Site a, String collection) throws MongoException {
         boolean b = collectionExist(collection);
         if (b) {
@@ -70,15 +72,15 @@ public class database implements java.lang.AutoCloseable {
         }
         return b;
     }
-
+     */
     public boolean updateSitesCollection(Site a) throws MongoException {
         boolean b = true;
         if (a.getUrl() != null) {//to avoid error
             //db.getCollection(collection).updateOne(new Document("entityId", "12").append("nameIdentity.dob",new Document("$exists",false)), new Document("$push", new Document("nameIdentity", new Document("fName", "1223").append("lName", "2222222") .append("dob", "00").append("address", "789"))));
             Document doc = db.getCollection(COLLECTION_SITES).findOneAndReplace(new Document("url", a.getUrl()), a.toDocument(), new FindOneAndReplaceOptions().upsert(true));
             /*if (doc == null) {
-                b = false;
-            }*/ //se non c'è lo inserisco e quindi doc==null potrebbe essere che viene inserito lo stesso
+              //  b = false;
+            } *///se non c'è lo inserisco e quindi doc==null potrebbe essere che viene inserito lo stesso
         } else {
             b = false;
         }
@@ -225,14 +227,16 @@ public class database implements java.lang.AutoCloseable {
         }
         return con;
     }
-    
-    public void deleteOneFromState(String site, String task_id){
+
+    public void deleteOneFromState(String site, String task_id) {
         db.getCollection(ACTUAL_STATE).deleteOne(new Document("site", site).append("task_id", task_id));
     }
-    public void deleteManyFromState(String task_id){
+
+    public void deleteManyFromState(String task_id) {
         db.getCollection(ACTUAL_STATE).deleteMany(new Document("task_id", task_id));
     }
-    public void insertOneInState(String site, String task_id){
+
+    public void insertOneInState(String site, String task_id) {
         db.getCollection(ACTUAL_STATE).insertOne(new Document("site", site).append("task_id", task_id));
     }
 }
