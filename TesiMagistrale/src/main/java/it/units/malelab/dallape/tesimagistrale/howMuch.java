@@ -35,14 +35,14 @@ public class howMuch extends HttpServlet {
         String task_id = request.getParameter("task_id");
         if (task_id != null && !task_id.isEmpty()) {
             try (database db = new database(); PrintWriter writer = response.getWriter();) {
-                Conditions c = db.getConditionFromMap(task_id, "TASKID_CONDITIONS");
+                Conditions c = db.getConditionFromMap(task_id);
                 if (c != null) {
                     int total = c.getSites().size();
                     int alreadyscan = c.getNrAlreadyScan();
                     System.out.println("fatti: " + alreadyscan + "/" + total);
                     boolean first = true;
                     while (total != alreadyscan) {
-                        c = db.getConditionFromMap(task_id, "TASKID_CONDITIONS");
+                        c = db.getConditionFromMap(task_id);
                         //CHECK IF C IS PAUSED AND REPORT TO CLIENT oR simply not send anything
                         if ((alreadyscan != c.getNrAlreadyScan()) || first) {
                             alreadyscan = c.getNrAlreadyScan();

@@ -32,7 +32,7 @@ public class mapTasks extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json;charset=UTF-8");
         try (PrintWriter out = response.getWriter(); database db = new database()) {
-            List<String> lista = db.getTasksIDFromMap("TASKID_CONDITIONS");
+            List<String> lista = db.getTasksIDFromMap();
             out.println("[");
             for (int i = 0; i < lista.size(); i++) {
                 out.print("\"");
