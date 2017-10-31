@@ -30,7 +30,6 @@ public class SiteImplementation implements Site {
 
     /*private List<String> scanned;
     private int level;*/
-
     public SiteImplementation(String url) throws AssertionError {
         assert !url.trim().isEmpty();
         url = sanitization(url, true);
@@ -62,6 +61,10 @@ public class SiteImplementation implements Site {
     public void setRealUrl(String url_visited) {
         url_visited = sanitization(url_visited, true);
         url_after_get = url_visited;
+    }
+    
+    public void reScanRealUrl(){
+        url_after_get = isReachable(url) ? "" : "Unreachable";
     }
 
     /*
@@ -132,21 +135,42 @@ public class SiteImplementation implements Site {
         return listTests;
     }
 
+    public void setListTests(List<Test> list) {
+        listTests = list;
+    }
+
     public List<Test> getTestWithThisName(String name) {
         List<Test> toBeReturned = new ArrayList<>();
         for (Test current : listTests) {
             if (current.getName().equalsIgnoreCase(name)) {
                 toBeReturned.add(current);
-                break;
             }
         }
         return toBeReturned;
     }
 
-    public Test getRecentTest(String name) {
+    public List<Test> getTestsWithThisID(String id) {
+        List<Test> toBeReturned = new ArrayList<>();
+        for (Test current : listTests) {
+            if (current.getTaskID().equalsIgnoreCase(id)) {
+                toBeReturned.add(current);
+            }
+        }
+        return toBeReturned;
+    }
+
+    public Test getRecentTestForName(String name) {
         List<Test> tests = getTestWithThisName(name);
+        return getRecentTest(tests);
+    }
+    public Test getRecentTestForID(String id) {
+        List<Test> tests = getTestsWithThisID(id);
+        return getRecentTest(tests);
+    }
+
+    private Test getRecentTest(List<Test> tests) {
         Test current = null;
-        if (!tests.isEmpty()) {
+        if (tests != null && !tests.isEmpty()) {
             current = tests.get(0);
             for (Test m : tests) {
                 if (m.getTimestamp().after(current.getTimestamp())) {
@@ -156,28 +180,46 @@ public class SiteImplementation implements Site {
         }
         return current;
     }
-    
-    public void setResult(double res){
-        result=res;
+
+    public void setResult(double res) {
+        result = res;
     }
-    public double getResult(){
+
+    public double getResult() {
         return result;
     }
-    
-    public void calculateResult(List<String> nameTestToConsider){
-        List<Test> toCalculate= new ArrayList<>();
-        for(String s: nameTestToConsider){
-            if(getRecentTest(s)!=null) toCalculate.add(getRecentTest(s));
+
+    public void calculateResult(List<String> nameTestToConsider) {
+        List<Test> toCalculate = new ArrayList<>();
+        for (String s : nameTestToConsider) {
+            if (getRecentTestForName(s) != null) {
+                toCalculate.add(getRecentTestForName(s));
+            }
         }
-        double res=0.0;
-        for(Test current: toCalculate){
-         res=res+current.getResult();
+        double res = 0.0;
+        for (Test current : toCalculate) {
+            res = res + current.getResult();
         }
-        result=res/toCalculate.size();
+        result = res / toCalculate.size();
     }
-    
-    public void calculateResultForm(){
-        result= getRecentTest("FORM").getResult();
+
+    public void calculateOneResultName(String name) {
+        result = getRecentTestForName(name).getResult();
+    }
+    public void calculateOneResultID(String id) {
+        result = getRecentTestForID(id).getResult();
+    }
+
+    public void calcolateResultOnRemain() {
+        double res = 0.0;
+        for (Test current : listTests) {
+            res = res + current.getResult();
+        }
+        if (listTests.size() > 0) {
+            result = res / listTests.size();
+        } else {
+            result = 0.0;
+        }
     }
 
     /*
@@ -342,7 +384,8 @@ public class SiteImplementation implements Site {
         for (Test t : listTests) {
             list.add(t.toDocument());
         }
-        Document doc = new Document("url", url).append("url_true", url_after_get).append("task_id", TASK_ID).append("result",result).append("tests", list);
+        Document doc = new Document("url", url).append("url_true", url_after_get).append("task_id", TASK_ID).append("result", result).append("tests", list);
+        //Document doc = new Document("url", url).append("url_true", url_after_get).append("task_id", TASK_ID).append("result",result).append("tests", list);
         //Document doc = new Document("$push", new Document("result", new Document("timestamp", timestamp).append("url_finded", new JSONArray(list))));
         return doc;
     }
@@ -387,5 +430,35 @@ public class SiteImplementation implements Site {
         }
         //if value passed is a whitespace
         return value.trim();
+    }
+
+    private Site getSiteFiltered(List<String> recentTestToShow, String task_id) {
+        Site s = fromDocument(this.toDocument());
+        List<Test> list = new ArrayList<>();
+        if (task_id.isEmpty()) {
+            for (String test : recentTestToShow) {
+                if (((SiteImplementation) s).getRecentTestForName(test) != null) {
+                    list.add(((SiteImplementation) s).getRecentTestForName(test));
+                }
+            }
+        } else {
+            if (((SiteImplementation) s).getTestsWithThisID(task_id) != null) {
+                list = ((SiteImplementation) s).getTestsWithThisID(task_id);
+            }
+        }
+        if(list==null){
+            list=new ArrayList<>();
+        }
+        ((SiteImplementation) s).setListTests(list);
+        ((SiteImplementation) s).calcolateResultOnRemain();
+        return s;
+    }
+
+    public Site getSiteFiltered(String task_id) {
+        return getSiteFiltered(null, task_id);
+    }
+
+    public Site getSiteFiltered(List<String> recentTestToShow) {
+        return getSiteFiltered(recentTestToShow, "");
     }
 }
