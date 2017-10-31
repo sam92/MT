@@ -5,16 +5,15 @@
  */
 package it.units.malelab.dallape.tesimagistrale;
 
-import java.util.regex.PatternSyntaxException;
 import org.openqa.selenium.WebDriver;
 
 /**
  *
  * @author Samuele
  */
-public interface TestContacts extends Test{
+public interface TestWeight extends Test{
     public WebDriver getWebDriver();
     public void setWebDriver(WebDriver wb);
     public void quitWebDriver();
-    public void setRegex(String regex) throws PatternSyntaxException;
+    public void setThreshold(double t);
 }
