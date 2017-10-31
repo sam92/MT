@@ -21,8 +21,6 @@ public class Conditions {
     private List<String> test;
     private boolean reanalyze;
     //private String task_id;
-    private String NAME_COLLECTION;
-    private String NAME_STATE;
     //private Thread t;
     private boolean paused = false;
     private boolean stopped = false;
@@ -32,9 +30,7 @@ public class Conditions {
     public Conditions() {
     }
 
-    public Conditions(List<String> sites, List<String> test, boolean reanalyze, String NAME_COLLECTION, String NAME_STATE) {
-        this.NAME_COLLECTION = NAME_COLLECTION;
-        this.NAME_STATE = NAME_STATE;
+    public Conditions(List<String> sites, List<String> test, boolean reanalyze) {
         this.reanalyze = reanalyze;
         this.sites = sites;
         this.test = test;
@@ -45,9 +41,7 @@ public class Conditions {
         current="";
     }
 
-    public Conditions(Map<String, Boolean> progress, List<String> test, boolean reanalyze, String NAME_COLLECTION, String NAME_STATE) {
-        this.NAME_COLLECTION = NAME_COLLECTION;
-        this.NAME_STATE = NAME_STATE;
+    public Conditions(Map<String, Boolean> progress, List<String> test, boolean reanalyze) {
         this.reanalyze = reanalyze;
         this.sites = new ArrayList<>(progress.keySet());
         //this.task_id = taskID;
@@ -72,14 +66,6 @@ public class Conditions {
         this.task_id = taskID;
     }
 */
-    public void setNameCollection(String nameCollection) {
-        this.NAME_COLLECTION = nameCollection;
-    }
-
-    public void setNameState(String nameState) {
-        this.NAME_STATE = nameState;
-    }
-
     public List<String> getSites() {
         return sites;
     }
@@ -96,13 +82,6 @@ public class Conditions {
         return task_id;
     }
 */
-    public String getNameCollection() {
-        return NAME_COLLECTION;
-    }
-
-    public String getNameState() {
-        return NAME_STATE;
-    }
 /*
     public Thread getThread() {
         return t == null ? null : (t.isAlive() ? t : null);
@@ -168,7 +147,7 @@ public class Conditions {
         for(String s: progress.keySet()){
             lista.add(new Document("site",s).append("done",progress.get(s)));
         }
-        doc.append("progress", lista).append("test", test).append("reanalyze", reanalyze).append("status", status).append("current",current).append("collection", NAME_COLLECTION).append("state", NAME_STATE);
+        doc.append("progress", lista).append("test", test).append("reanalyze", reanalyze).append("status", status).append("current",current);
         return doc;
     }
 
@@ -188,7 +167,7 @@ public class Conditions {
         }
         List<String> test = (List<String>) doc.get("test");
         //List<String> sites = new ArrayList<>(mappa.keySet());
-        Conditions c = new Conditions(map, test, doc.getBoolean("reanalyze"), doc.getString("collection"), doc.getString("state"));
+        Conditions c = new Conditions(map, test, doc.getBoolean("reanalyze"));
         if(doc.getString("current")!=null){
             c.setCurrent(doc.getString("current"));
         }
