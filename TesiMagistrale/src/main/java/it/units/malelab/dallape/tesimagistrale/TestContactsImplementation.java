@@ -62,13 +62,13 @@ public class TestContactsImplementation implements TestContacts {
         current.setTASKID(id);
     }
 
-    public TestContactsImplementation(Site url, WebDriver webDriv, String id) {
-        current = url;
+    public TestContactsImplementation(Site site, WebDriver webDriv, String id) {
+        current = site;
         wb = webDriv;
         listEmail = new ArrayList<>();
         timestamp = new Timestamp(System.currentTimeMillis());
         this.id = id;
-        if (url != null) {
+        if (site != null) {
             current.setTASKID(id);
         }
     }
@@ -94,10 +94,11 @@ public class TestContactsImplementation implements TestContacts {
         System.out.println("Searching for email in: " + url);
         boolean exist = false;
         try {
-            if(!SiteImplementation.sanitization(driver.getCurrentUrl(),false).equals(current.getRealUrl())){
+            if(!SiteImplementation.sanitization(driver.getCurrentUrl(),false).equals(url)){
                 driver.get(url);
                 driver.manage().timeouts().implicitlyWait(SOGLIA_IMPLICIT * 400, TimeUnit.MILLISECONDS);
                 driver.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+                System.out.println("SON QUA");
             }
             String currentUrl = driver.getCurrentUrl();
             System.out.print("Searching for Email in real url " + currentUrl + " : ");
@@ -382,7 +383,7 @@ public class TestContactsImplementation implements TestContacts {
                 rate=0.0;
             }
         }
-        System.out.println("RESULT= " + rate);
+        System.out.println("RESULT "+getName()+ ": "+rate);
         return rate;
     }
 
