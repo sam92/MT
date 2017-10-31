@@ -65,7 +65,7 @@ public class TestWeightImplementation implements TestWeight {
 
     @Override
     public String getName() {
-        return "EMPTY";
+        return "WEIGHT";
     }
 
     @Override
@@ -84,20 +84,19 @@ public class TestWeightImplementation implements TestWeight {
         else{
             result=-2.0;
         }
+        System.out.println("RESULT "+getName()+ ": "+result);
         return result;
     }
 
     @Override
     public Object getDetails() {
+        System.out.println("Weight: "+weight+" KB");
         return weight+" KB";
     }
 
     @Override
     public String getDescription() {
         return info;
-    }
-    public void setThresholdKB(double thresh){
-        threshold_KB=thresh;
     }
 
     public void setDescription(String info, boolean append) {
@@ -193,7 +192,7 @@ public class TestWeightImplementation implements TestWeight {
 
     @Override
     public void setThreshold(double t) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        threshold_KB=t;
     }
 
 }
