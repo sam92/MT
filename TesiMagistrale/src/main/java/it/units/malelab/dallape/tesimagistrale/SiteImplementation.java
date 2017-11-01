@@ -127,7 +127,16 @@ public class SiteImplementation implements Site {
 
     @Override
     public void insertTest(Test toBeAdded) {
-        listTests.add(toBeAdded);
+        int index=-1;
+        for(Test t: listTests){
+            if(t.getName().equalsIgnoreCase(toBeAdded.getName()) && t.getTaskID().equalsIgnoreCase(toBeAdded.getTaskID())){
+                index=listTests.indexOf(t);
+            }
+        }
+        if(index>=0) listTests.add(index,toBeAdded);
+        else{
+            listTests.add(toBeAdded);
+        }
     }
 
     @Override
