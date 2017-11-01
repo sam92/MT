@@ -13,6 +13,10 @@ import com.mongodb.*;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.InsertOneOptions;
+import com.mongodb.client.model.UpdateOptions;
 import java.util.ArrayList;
 import java.util.List;
 import org.bson.Document;
@@ -109,8 +113,11 @@ public class database implements java.lang.AutoCloseable {
         return db.getCollection(COLLECTION_SITES).find(new Document("url", url.trim())).first() != null;//getTheFirstDocumentWithThisKeyValue("url_site", url, "SITES") != null;
     }
 
-    public boolean existInSTATE(String site) {
-        return db.getCollection(ACTUAL_STATE).find(new Document("site", site)).first() != null;//getTheFirstDocumentWithThisKeyValue("site", site, "STATE_LIST_SITES") != null;
+    public boolean existInSTATE(String site,String task_id) {
+        boolean value=false;
+        if(task_id!=null && ! task_id.isEmpty()) value= db.getCollection(ACTUAL_STATE).find(new Document("site", site).append("task_id",task_id)).first() != null;//getTheFirstDocumentWithThisKeyValue("site", site, "STATE_LIST_SITES") != null;
+        else value=db.getCollection(ACTUAL_STATE).find(new Document("site", site)).first() != null;
+        return value;
     }
 
     public Site getFromCollectionsSites(String name) {
@@ -237,6 +244,11 @@ public class database implements java.lang.AutoCloseable {
     }
 
     public void insertOneInState(String site, String task_id) {
-        db.getCollection(ACTUAL_STATE).insertOne(new Document("site", site).append("task_id", task_id));
+        //db.getCollection(ACTUAL_STATE).insertOne(new Document("site", site).append("task_id", task_id));
+        Document d=new Document("site",site).append("task_id",task_id);
+        if(existInSTATE(site,task_id)){
+            db.getCollection(ACTUAL_STATE).findOneAndUpdate(d,d,new FindOneAndUpdateOptions().upsert(false));
+        }
+        else db.getCollection(ACTUAL_STATE).insertOne(new Document("site", site).append("task_id", task_id));
     }
 }
