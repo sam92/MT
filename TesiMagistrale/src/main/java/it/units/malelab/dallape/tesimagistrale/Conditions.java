@@ -18,7 +18,7 @@ import org.bson.Document;
  */
 public class Conditions {
     private List<String> sites;
-    private List<String> test;
+    private List<String> tests;
     private boolean reanalyze;
     //private String task_id;
     //private Thread t;
@@ -30,10 +30,10 @@ public class Conditions {
     public Conditions() {
     }
 
-    public Conditions(List<String> sites, List<String> test, boolean reanalyze) {
+    public Conditions(List<String> sites, List<String> tests, boolean reanalyze) {
         this.reanalyze = reanalyze;
         this.sites = sites;
-        this.test = test;
+        this.tests = tests;
         progress = new ConcurrentHashMap<>();
         for (String s : sites) {
             progress.put(s, false);
@@ -41,11 +41,11 @@ public class Conditions {
         current="";
     }
 
-    public Conditions(Map<String, Boolean> progress, List<String> test, boolean reanalyze) {
+    public Conditions(Map<String, Boolean> progress, List<String> tests, boolean reanalyze) {
         this.reanalyze = reanalyze;
         this.sites = new ArrayList<>(progress.keySet());
         //this.task_id = taskID;
-        this.test = test;
+        this.tests = tests;
         this.progress = progress;
         current="";
     }
@@ -55,7 +55,7 @@ public class Conditions {
     }
 
     public void setTests(List<String> test) {
-        this.test = test;
+        this.tests = test;
     }
 
     public void setReanalyze(boolean reanalyze) {
@@ -71,7 +71,7 @@ public class Conditions {
     }
 
     public List<String> getTests() {
-        return test;
+        return tests;
     }
 
     public boolean getReanalyze() {
@@ -147,7 +147,7 @@ public class Conditions {
         for(String s: progress.keySet()){
             lista.add(new Document("site",s).append("done",progress.get(s)));
         }
-        doc.append("progress", lista).append("test", test).append("reanalyze", reanalyze).append("status", status).append("current",current);
+        doc.append("progress", lista).append("test", tests).append("reanalyze", reanalyze).append("status", status).append("current",current);
         return doc;
     }
 
