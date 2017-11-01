@@ -40,16 +40,16 @@ public class howMuch extends HttpServlet {
                     int total = c.getSites().size();
                     int alreadyscan = c.getNrAlreadyScan();
                     System.out.println("fatti: " + alreadyscan + "/" + total);
-                    boolean first = true;
                     while (total != alreadyscan) {
                         c = db.getConditionFromMap(task_id);
                         //CHECK IF C IS PAUSED AND REPORT TO CLIENT oR simply not send anything
-                        if ((alreadyscan != c.getNrAlreadyScan()) || first) {
+                        if ((alreadyscan != c.getNrAlreadyScan()) || alreadyscan==0) {
                             alreadyscan = c.getNrAlreadyScan();
                             //StringBuilder data = new StringBuilder(128);
                             //data.append("{\"current\":\"").append(c.getCurrent()).append("\",").append("\"current_nr\":").append(alreadyscan).append(",").append("\"total\":").append(total).append("}\n\n");
-
-                            String data = "{\"current\":\"" + c.getCurrent() + "\",\"current_nr\":" + alreadyscan + ",\"total\":" + total + "}\n\n";
+                            String current=c.getCurrent();
+                            if(alreadyscan==0) current="Starting job";
+                            String data = "{\"current\":\"" + current + "\",\"current_nr\":" + alreadyscan + ",\"total\":" + total + "}\n\n";
                             // write the event type (make sure to include the double newline)
                             writer.write("event: " + "status" + "\n\n");
                             // write the actual data
@@ -65,7 +65,6 @@ public class howMuch extends HttpServlet {
                         System.out.println(ex.getMessage());
                     }*/
                         }
-                        first = false;
                         //System.out.println(alreadyscan + "_______________________________ "+c.getNrAlreadyScan());
                     }
                     writer.write("event: " + "status" + "\n\n");
