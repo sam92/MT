@@ -6,7 +6,6 @@
 package it.units.malelab.dallape.tesimagistrale;
 
 import java.util.List;
-import org.bson.Document;
 import org.openqa.selenium.WebDriver;
 
 /**
@@ -20,14 +19,6 @@ public interface TestForm extends Test{
     public WebDriver getWebDriver();
     public void setWebDriver(WebDriver wb);
     public void quitWebDriver();
-    public void testWordpress();
-    public void testJoomla();
-    public void testPlone();
-    public void testDrupal();
-    public void testTypo3();
-    public void testHomepage();
-    public void testAllCMS();
-    public void start();
     public List<String> listCMS();
 }
 
