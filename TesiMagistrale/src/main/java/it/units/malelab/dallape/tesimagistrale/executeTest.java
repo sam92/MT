@@ -19,17 +19,17 @@ public class executeTest extends Thread {
     private final Map<String, Boolean> progress;
     private final String task_id;
     private final Conditions con;
-    private final List<String> whatTest;
+    private final List<String> tests;
     private final boolean reanalyze;
+    private final String FORM="FORM";
+    private final String CONTACTS="CONTACTS";
+    private final String WEIGHT="WEIGHT";
 
     public executeTest(String task_id, Conditions con) {
         this.task_id = task_id;
-        if (!con.getTests().contains("")) {
-            con.getTests().add("");
-        }
         this.con = con;
         this.reanalyze = con.getReanalyze();
-        this.whatTest = con.getTests();
+        this.tests = con.getTests();
         progress = con.getProgress();
     }
 
@@ -80,43 +80,28 @@ public class executeTest extends Thread {
                             else{
                                 ((SiteImplementation)site).reScanRealUrl();
                             }
-                            TestForm formTest = new TestFormImplementation(site, task_id);
+                            TestForm formTest=null;
+                            TestContacts contactsTest=null;
+                            TestWeight weight=null;
                             if (!site.isUnreachable()) {
-                                if (whatTest.size() >= 6 && (whatTest.contains("wordpress") || whatTest.contains("joomla") || whatTest.contains("plone") || whatTest.contains("drupal") || whatTest.contains("typo3"))) {
-                                    formTest.testAllCMS();
-                                } else {
-                                    formTest.testHomepage();
-                                    for (String current : whatTest) {
-                                        switch (current) {
-                                            case "wordpress":
-                                                formTest.testWordpress();
-                                                break;
-                                            case "joomla":
-                                                formTest.testJoomla();
-                                                break;
-                                            case "plone":
-                                                formTest.testPlone();
-                                                break;
-                                            case "typo3":
-                                                formTest.testTypo3();
-                                                break;
-                                            case "drupal":
-                                                formTest.testDrupal();
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                    }
-                                }
+                                if(tests.contains(FORM)){
+                                formTest = new TestFormImplementation(site, task_id);
                                 formTest.start();
                                 site.insertTest(formTest);
-                                TestContacts contactsTest = new TestContactsImplementation(site, formTest.getWebDriver(), task_id);
+                                }
+                                if(tests.contains(CONTACTS)){
+                                contactsTest = new TestContactsImplementation(site, (formTest==null) ? null:formTest.getWebDriver(), task_id);
                                 contactsTest.start();
                                 site.insertTest(contactsTest);
-                                TestWeight scad = new TestWeightImplementation(site, contactsTest.getWebDriver(), task_id);
-                                scad.start();
-                                site.insertTest(scad);
-                                scad.quitWebDriver();
+                                }
+                                if(tests.contains(WEIGHT)){
+                                weight = new TestWeightImplementation(site, (formTest==null) ? null:formTest.getWebDriver(), task_id);
+                                weight.start();
+                                site.insertTest(weight);
+                                }
+                                if(formTest!=null) formTest.getWebDriver();
+                                if(contactsTest!=null) contactsTest.getWebDriver();
+                                if(weight!=null) weight.getWebDriver();
                                 System.out.println(site.toJSONString());
                             } else {
                                 //is unreachable, inserisco in mappa cosi
