@@ -42,6 +42,7 @@ public class TestContactsImplementation implements TestContacts {
     private final int SOGLIA_FOLLOW = 20;
     private List<String> listEmail;
     private int SOGLIA_IMPLICIT = 1;
+    private final String CONTACTS="CONTACTS";
     private Timestamp timestamp;
     private String id;
     private String info = "Vengono cercati tutti i form di login nella pagina e nei link della pagina.\n"
@@ -68,12 +69,11 @@ public class TestContactsImplementation implements TestContacts {
         listEmail = new ArrayList<>();
         timestamp = new Timestamp(System.currentTimeMillis());
         this.id = id;
-        if (site != null) {
             current.setTASKID(id);
-        }
     }
     @Override
     public void start() {
+        if(wb==null) wb = (!current.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
         if (!current.getRealUrl().equalsIgnoreCase("Unreachable") || wb != null) {
             List<String> listaLink = searchAndFollowLink(wb, current);
             for (String currentString : listaLink) {
@@ -412,7 +412,7 @@ public class TestContactsImplementation implements TestContacts {
 
     @Override
     public String getName() {
-        return "CONTACTS";
+        return CONTACTS;
     }
 
     @Override

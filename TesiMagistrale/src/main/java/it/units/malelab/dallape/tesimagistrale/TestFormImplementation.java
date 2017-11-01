@@ -24,7 +24,7 @@ public class TestFormImplementation implements TestForm {
         List<String> sites = new ArrayList<>();
         //sites.add("www.trieste6.net");
         //sites.add("www.trieste2.it");
-        //sites.add("www.agi.it");
+        sites.add("www.agi.it");
         sites.add("http://www.regione.fvg.it");
         /*sites.add("www.uslumbria1.gov.it");
         sites.add("www.uslumbria2.it");
@@ -64,40 +64,17 @@ public class TestFormImplementation implements TestForm {
         String task_id = sites.size() + "" + sites.hashCode();
         for (String s : sites) {
             Site site = new SiteImplementation(s);
-            TestForm formTest = new TestFormImplementation(site, task_id);
             if (!site.isUnreachable()) {
-                if (whatTest.size() >= 6 && (whatTest.contains("wordpress") || whatTest.contains("joomla") || whatTest.contains("plone") || whatTest.contains("drupal") || whatTest.contains("typo3"))) {
-                    formTest.testAllCMS();
-                } else {
-                    formTest.testHomepage();
-                    for (String current : whatTest) {
-                        switch (current) {
-                            case "wordpress":
-                                formTest.testWordpress();
-                                break;
-                            case "joomla":
-                                formTest.testJoomla();
-                                break;
-                            case "plone":
-                                formTest.testPlone();
-                                break;
-                            case "typo3":
-                                formTest.testTypo3();
-                                break;
-                            case "drupal":
-                                formTest.testDrupal();
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                }
-                //formTest.start();
-                //site.insertTest(formTest);
-                Test contactsTest = new TestContactsImplementation(site, formTest.getWebDriver(), task_id);
+                TestForm formTest = new TestFormImplementation(site, task_id,whatTest);
+                formTest.start();
+                site.insertTest(formTest);
+                TestContacts contactsTest = new TestContactsImplementation(site, formTest.getWebDriver(), task_id);
                 contactsTest.start();
                 site.insertTest(contactsTest);
-                formTest.quitWebDriver();
+                TestWeight scad=new TestWeightImplementation(site, contactsTest.getWebDriver(), task_id);
+                scad.start();
+                site.insertTest(scad);
+                scad.quitWebDriver();
                 System.out.println(site.toJSONString());
             } else {
                 System.out.println("Already exist: " + s);
@@ -107,7 +84,7 @@ public class TestFormImplementation implements TestForm {
 
     private final Site current;
     private WebDriver wb;
-    private List<String> testCMS;
+    private final List<String> listCMSPath;
     private final Map<String, List<String[]>> existForm; //tengo traccia delle pagine che ho già scansionato cosi se nell'esecuzione devo riscansionarle guardo prima in map
     private final int SOGLIA_GET = 30;
     private final int SOGLIA_FOLLOW = 20;
@@ -115,6 +92,7 @@ public class TestFormImplementation implements TestForm {
     private Timestamp timestamp;
     private String id;
     private List<String[]> result_;
+    private final String FORM="FORM";
     private String info = "Vengono cercati tutti i form di login nella pagina e nei link della pagina.\n"
             + "result=1 Good. All forms found are in https \n"
             + "        result=0 Unknow (Not Found Form)\n"
@@ -122,11 +100,25 @@ public class TestFormImplementation implements TestForm {
             + "        result=-2 Not Applicable. Sito Unreachable\n"
             + "        0<result<1 Not Good at all. Result is the % of form in https. This means that there are forms taken by http (or with http action)\n";
 
-    ;
-
+    public TestFormImplementation(Site site, String id, List<String> cmsTestToDo) {
+        current = site;
+        listCMSPath = new ArrayList<>();
+        setCMSPathsToTest(cmsTestToDo);
+        existForm = new HashMap<>();
+        result_ = new ArrayList<>();
+        //System.out.println("Url getted by ping: " + current.getRealUrl());
+        wb = (!site.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
+        /*if (wb != null) {
+            //wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+            //wb.manage().timeouts().pageLoadTimeout(SOGLIA_GET, TimeUnit.SECONDS);
+        }*/
+        timestamp = new Timestamp(System.currentTimeMillis());
+        this.id=id;
+        current.setTASKID(id);
+    }
     public TestFormImplementation(Site site, String id) {
         current = site;
-        testCMS = new ArrayList<>();
+        listCMSPath = new ArrayList<>();
         existForm = new HashMap<>();
         result_ = new ArrayList<>();
         //System.out.println("Url getted by ping: " + current.getRealUrl());
@@ -140,12 +132,28 @@ public class TestFormImplementation implements TestForm {
         current.setTASKID(id);
     }
 
+    public TestFormImplementation(Site url, WebDriver webDriv, String id, List<String> cmsTestToDo) {
+        //current = new SiteImplementation(url);
+        current = url;
+        wb = webDriv;
+        //wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        listCMSPath = new ArrayList<>();
+        setCMSPathsToTest(cmsTestToDo);
+        existForm = new HashMap<>();
+        result_ = new ArrayList<>();
+        //existJSForm = new HashMap<>();
+        timestamp = new Timestamp(System.currentTimeMillis());
+        this.id = id;
+        if (url != null) {
+            current.setTASKID(id);
+        }
+    }
     public TestFormImplementation(Site url, WebDriver webDriv, String id) {
         //current = new SiteImplementation(url);
         current = url;
         wb = webDriv;
         //wb.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-        testCMS = new ArrayList<>();
+        listCMSPath = new ArrayList<>();
         existForm = new HashMap<>();
         result_ = new ArrayList<>();
         //existJSForm = new HashMap<>();
@@ -426,10 +434,10 @@ public class TestFormImplementation implements TestForm {
                 }
                 System.out.println("Link find in " + url.getUrl() + " to follow:");
                 System.out.println("--------------------");
-                if (linkToLogin.contains(url.getUrl()) && testCMS.contains("")) {
+                if (linkToLogin.contains(url.getUrl()) && listCMSPath.contains("")) {
                     linkToLogin.remove(url.getUrl());
                 }
-                if (linkToLogin.contains(url.getRealUrl()) && testCMS.contains("")) {
+                if (linkToLogin.contains(url.getRealUrl()) && listCMSPath.contains("")) {
                     linkToLogin.remove(url.getRealUrl());
                 }
                 List<String[]> tmp = new ArrayList<>();
@@ -463,35 +471,12 @@ public class TestFormImplementation implements TestForm {
         return linkToLogin;
     }
 
-    /*
-    @Override
-    public Site getSite() {
-        return current;
-    }
-     */
-    @Override
-    public WebDriver getWebDriver() {
-        return wb;
-    }
-
-    @Override
-    public void setWebDriver(WebDriver wb) {
-        this.wb = wb;
-    }
-
-    @Override
-    public void quitWebDriver() {
-        if (wb != null) {
-            wb.quit();
-        }
-    }
-
     @Override
     public void searchFormInThesePaths(List pattern) {
         if (!current.isUnreachable()) {
             if (pattern.isEmpty()) {
                 testAllCMS();
-                pattern = testCMS;
+                pattern = listCMSPath;
             }
             searchLogin(wb, current, true, (List<String>) pattern);
         }
@@ -509,13 +494,110 @@ public class TestFormImplementation implements TestForm {
 
     @Override
     public void start() {
-        searchFormInThesePaths(this.listCMS());
+        if(wb==null) wb = (!current.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
+        searchFormInThesePaths(listCMSPath);
         searchFormInLinkedPagesOfHomepage();
     }
 
     @Override
     public List<String> listCMS() {
-        return testCMS;
+        return listCMSPath;
+    }
+
+    
+    private void setCMSPathsToTest(List<String> paths){
+        if (paths.size() == 6 && paths.contains("homepage") && paths.contains("wordpress") && paths.contains("joomla") && paths.contains("plone") && paths.contains("drupal") && paths.contains("typo3")) {
+                    testAllCMS();
+                } else {
+                    for (String currentPath : paths) {
+                        switch (currentPath) {
+                            case "wordpress":
+                                testWordpress();
+                                break;
+                            case "joomla":
+                                testJoomla();
+                                break;
+                            case "plone":
+                                testPlone();
+                                break;
+                            case "typo3":
+                                testTypo3();
+                                break;
+                            case "drupal":
+                                testDrupal();
+                                break;
+                            case "homepage":
+                                testHomepage();
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+    }
+private void testAllCMS() {
+        if (listCMSPath != null) {
+            testWordpress();
+            testJoomla();
+            testPlone();
+            testDrupal();
+            testTypo3();
+            testHomepage();
+        }
+    }
+    
+    private void testWordpress() {
+        if (listCMSPath != null) {
+            if (!listCMSPath.contains("/wp-login.php")) {
+                listCMSPath.add("/wp-login.php");
+            }
+            if (!listCMSPath.contains("/login")) {
+                listCMSPath.add("/login");
+            }
+        }
+    }
+
+    private void testJoomla() {
+        if (listCMSPath != null) {
+            if (!listCMSPath.contains("/administrator")) {
+                listCMSPath.add("/administrator");
+            }
+            if (!listCMSPath.contains("/login")) {
+                listCMSPath.add("/login");
+            }
+        }
+    }
+
+    private void testPlone() {
+        if (listCMSPath != null) {
+            if (!listCMSPath.contains("/login")) {
+                listCMSPath.add("/login");
+            }
+        }
+    }
+
+    private void testDrupal() {
+        if (listCMSPath != null) {
+            if (!listCMSPath.contains("/user")) {
+                listCMSPath.add("/user");
+            }
+        }
+    }
+
+    private void testTypo3() {
+        if (listCMSPath != null) {
+            if (!listCMSPath.contains("/member")) {
+                listCMSPath.add("/member");
+            }
+        }
+    }
+
+    private void testHomepage() {
+        if (listCMSPath != null) {
+            if (!listCMSPath.contains("")) {
+                listCMSPath.add("");
+            }
+        }
     }
 
     public static List<String> defaultWordsLogin() {
@@ -535,78 +617,6 @@ public class TestFormImplementation implements TestForm {
         nameLogin.add("sign");
         nameLogin.add("signin");
         return nameLogin;
-    }
-
-    @Override
-    public void testWordpress() {
-        if (testCMS != null) {
-            if (!testCMS.contains("/wp-login.php")) {
-                testCMS.add("/wp-login.php");
-            }
-            if (!testCMS.contains("/login")) {
-                testCMS.add("/login");
-            }
-        }
-    }
-
-    @Override
-    public void testJoomla() {
-        if (testCMS != null) {
-            if (!testCMS.contains("/administrator")) {
-                testCMS.add("/administrator");
-            }
-            if (!testCMS.contains("/login")) {
-                testCMS.add("/login");
-            }
-        }
-    }
-
-    @Override
-    public void testPlone() {
-        if (testCMS != null) {
-            if (!testCMS.contains("/login")) {
-                testCMS.add("/login");
-            }
-        }
-    }
-
-    @Override
-    public void testDrupal() {
-        if (testCMS != null) {
-            if (!testCMS.contains("/user")) {
-                testCMS.add("/user");
-            }
-        }
-    }
-
-    @Override
-    public void testTypo3() {
-        if (testCMS != null) {
-            if (!testCMS.contains("/member")) {
-                testCMS.add("/member");
-            }
-        }
-    }
-
-    @Override
-    public void testHomepage() {
-        if (testCMS != null) {
-            if (!testCMS.contains("")) {
-                testCMS.add("");
-            }
-        }
-    }
-
-    @Override
-    public void testAllCMS() {
-        if (testCMS != null) {
-            testWordpress();
-            testJoomla();
-            testPlone();
-            testDrupal();
-            testTypo3();
-            testHomepage();
-        }
     }
 
     @Override
@@ -638,7 +648,7 @@ public class TestFormImplementation implements TestForm {
                 rate = value / total;
             }
         }
-        System.out.println("RESULT= " + rate);
+        System.out.println("RESULT "+getName()+ ": "+rate);
         return rate;
     }
 
@@ -681,7 +691,7 @@ public class TestFormImplementation implements TestForm {
 
     @Override
     public String getName() {
-        return "FORM";
+        return FORM;
     }
 
     @Override
@@ -741,5 +751,21 @@ public class TestFormImplementation implements TestForm {
         }
         return test;
     }
+    
+        @Override
+    public WebDriver getWebDriver() {
+        return wb;
+    }
 
+    @Override
+    public void setWebDriver(WebDriver wb) {
+        this.wb = wb;
+    }
+
+    @Override
+    public void quitWebDriver() {
+        if (wb != null) {
+            wb.quit();
+        }
+    }
 }

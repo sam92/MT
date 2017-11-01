@@ -19,6 +19,7 @@ public class TestWeightImplementation implements TestWeight {
     private WebDriver wb;
     private Timestamp timestamp;
     private String id;
+    private final String WEIGHT="WEIGHT";
     private double weight=0.0;
     private double threshold_KB=20.0;
     private String info = "Viene valutato il pego della pagina web (Non è detto che vengano eseguiti gli script js prima della valutazione).\n"
@@ -44,10 +45,8 @@ public class TestWeightImplementation implements TestWeight {
         }*/
         timestamp = new Timestamp(System.currentTimeMillis());
         this.id = id;
-        if (site != null) {
             wb = (!site.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
             current.setTASKID(id);
-        }
     }
 
     public TestWeightImplementation(Site site, WebDriver webDriv, String id) {
@@ -58,14 +57,12 @@ public class TestWeightImplementation implements TestWeight {
 
         timestamp = new Timestamp(System.currentTimeMillis());
         this.id = id;
-        if (site != null) {
             current.setTASKID(id);
-        }
     }
 
     @Override
     public String getName() {
-        return "WEIGHT";
+        return WEIGHT;
     }
 
     @Override
@@ -161,6 +158,7 @@ public class TestWeightImplementation implements TestWeight {
 
     @Override
     public void start() {
+        if(wb==null) wb = (!current.getRealUrl().equalsIgnoreCase("Unreachable")) ? new PhantomDriver(PhantomDriver.capabilities()) : null;
         if (!current.isUnreachable()) {
             wb.get(current.getUrl());
             String source = wb.getPageSource();
